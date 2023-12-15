@@ -40,14 +40,21 @@ query_redd_data <- function(
     purrr::map("result")
 
 
-  redd_surv_df <- data_list$`Redd Surveys` |>
+  redd_surv_df <-
+    data_list$`Redd Surveys` |>
     dplyr::mutate(
       across(
         c(survey_type,
           river),
         stringr::str_to_title
       )
-    )
+    ) |>
+    dplyr::mutate(
+      dplyr::across(
+        c(new_redds,
+          visible_redds),
+        as.numeric))
+
 
   # slightly different format for experience tables between Wenatchee and Methow
   if(stringr::str_detect(redd_file_name, "Wenatchee")) {
@@ -123,7 +130,8 @@ query_redd_data <- function(
                                      type, index) |>
                        dplyr::summarize(
                          dplyr::across(length_km,
-                                       ~ sum(.))),
+                                       ~ sum(.)),
+                         .groups = "drop"),
                      by = c("river", "reach", "index")) |>
     dplyr::left_join(data_list$`Thalweg CV` |>
                        dplyr::select(river,
@@ -143,15 +151,15 @@ query_redd_data <- function(
         as.factor),
       dplyr::across(
         reach,
-        forcats::fct_relevel,
-        "W10",
-        "C1", "N1", "P1",
-        after = Inf),
+        ~ forcats::fct_relevel(.,
+                               "W10",
+                               "C1", "N1", "P1",
+                               after = Inf)),
       dplyr::across(
         reach,
-        forcats::fct_relevel,
-        "MH1", "T1", "WN1",
-        after = Inf)) |>
+        ~ forcats::fct_relevel(.,
+                               "MH1", "T1", "WN1",
+                               after = Inf))) |>
     dplyr::filter(spawn_year %in% query_year) |>
     # calculate redd density and log of experience
     dplyr::mutate(naive_density_km = visible_redds / length_km,
