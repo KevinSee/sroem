@@ -46,17 +46,19 @@ compare_covars <- function(redd_df = NULL,
   if (!z_score) {
     comp_df <- net_err_mod$data |>
       dplyr::select(dplyr::any_of(attr(net_err_mod$terms, "term.labels"))) |>
+      dplyr::select(dplyr::where(is.numeric)) |>
       tidyr::pivot_longer(cols = dplyr::everything(),
                           names_to = "covariate",
                           values_to = "value") |>
       dplyr::mutate(source = "Model Data") |>
       dplyr::left_join(covar_center |>
-                         rename(covariate = metric),
-                       by = "covariate") |>
-      dplyr::mutate(across(value,
-                           ~ if_else(covariate != "net_error",
-                                     . * sd + mean,
-                                     .))) |>
+                         dplyr::rename(covariate = metric),
+                       by = dplyr::join_by(covariate)) |>
+      dplyr::mutate(
+        dplyr::across(value,
+                      ~ dplyr::if_else(covariate != "net_error",
+                                       . * sd + mean,
+                                       .))) |>
       dplyr::select(-c(mean, sd)) |>
       dplyr::bind_rows(redd_df |>
                          dplyr::select(-contains("net_error")) |>
@@ -64,6 +66,7 @@ compare_covars <- function(redd_df = NULL,
                                                num_obs = num_obs) |>
                          dplyr::filter(!is.na(net_error)) |>
                          dplyr::select(dplyr::any_of(attr(net_err_mod$terms, "term.labels"))) |>
+                         dplyr::select(dplyr::where(is.numeric)) |>
                          tidyr::pivot_longer(cols = dplyr::everything(),
                                              names_to = "covariate",
                                              values_to = "value") |>
@@ -72,6 +75,7 @@ compare_covars <- function(redd_df = NULL,
     comp_df <- net_err_mod$data |>
       dplyr::select(dplyr::any_of(attr(net_err_mod$terms, "term.labels")),
                     net_error) |>
+      dplyr::select(dplyr::where(is.numeric)) |>
       tidyr::pivot_longer(cols = dplyr::everything(),
                           names_to = "covariate",
                           values_to = "value") |>
@@ -82,6 +86,7 @@ compare_covars <- function(redd_df = NULL,
                                         num_obs = num_obs) |>
                   dplyr::filter(!is.na(net_error)) |>
                   dplyr::select(dplyr::any_of(attr(net_err_mod$terms, "term.labels"))) |>
+                  dplyr::select(dplyr::where(is.numeric)) |>
                   tidyr::pivot_longer(cols = dplyr::everything(),
                                       names_to = "covariate",
                                       values_to = "value") |>

@@ -20,8 +20,10 @@ prep_met_sthd_data <- function(
   dabom_file_name = "UC_Sthd_DABOM_",
   brood_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Bio Data/Sex and Origin PRD-Brood Comparison Data",
   brood_file_name = "STHD UC Brood Collections_2011 to current.xlsx",
-  removal_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Fish Removals/Archived",
-  removal_file_name = "UC_Removals.csv",
+  # removal_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Fish Removals/Archived",
+  # removal_file_name = "UC_Removals.csv",
+  removal_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Fish Removals",
+  removal_file_name = "Master_STHD_Removals_2.18.23.MH.xlsx",
   n_observers = "two",
   query_year = lubridate::year(lubridate::today()) - 1,
   phos_data = c("escapement",
@@ -46,7 +48,16 @@ prep_met_sthd_data <- function(
   if(!is.null(redd_df_all)) {
     # divide reaches into various location categories
     redd_df_all <- redd_df_all |>
-      dplyr::mutate(location = "Lower Methow")
+      dplyr::mutate(location = dplyr::case_when(reach == "T1" ~ "Twisp",
+                                                reach == "MH1" ~ "Methow Fish Hatchery",
+                                                reach == "WN1" ~ "Spring Creek",
+                                                .default = "Lower Methow"))
+
+
+    # drop surveys that didn't actually happen (NAs for new redds)
+    redd_df_all <-
+      redd_df_all |>
+      filter(!is.na(new_redds))
 
     # predict net error
     redd_df_all <- redd_df_all |>
@@ -73,15 +84,35 @@ prep_met_sthd_data <- function(
                                                                       dabom_dam_nm = dam_nm,
                                                                       dabom_file_name = dabom_file_name,
                                                                       query_year = yr,
-                                                                      result_type = "tag_summ")
+                                                                      result_type = "tag_summ") |>
+                                             dplyr::select(-dplyr::any_of("spawn_year"))
                                          })) |>
-    select(-dam_nm) |>
+    dplyr::select(-dam_nm) |>
     tidyr::unnest(tag_summ)
 
   if("spawn_node" %in% names(all_tags)) {
     all_tags <-
       all_tags |>
       rename(final_node = spawn_node)
+  }
+
+  if(!"cwt" %in% names(all_tags)) {
+    all_tags <-
+      all_tags |>
+      dplyr::mutate(cwt = dplyr::if_else(stringr::str_detect(conditional_comments, "CP") |
+                                           stringr::str_detect(conditional_comments, "CW"),
+                                         T, F),
+                    ad_clip = dplyr::case_when(stringr::str_detect(conditional_comments, "AD") ~ T,
+                                               stringr::str_detect(conditional_comments, "AI") ~ F,
+                                               .default = NA))
+  }
+
+  if(!"sex" %in% names(all_tags)) {
+    all_tags <-
+      all_tags |>
+      dplyr::mutate(sex = dplyr::case_when(stringr::str_detect(conditional_comments, "MA") ~ "M",
+                                           stringr::str_detect(conditional_comments, "FE") ~ "F",
+                                           .default = NA_character_))
   }
 
   met_tags_all <-
@@ -128,13 +159,17 @@ prep_met_sthd_data <- function(
                   ad_clip,
                   cwt) |>
     # differentiate different tags in hatchery fish
-    dplyr::mutate(mark_grp = if_else(origin == "W",
-                                     "W",
-                                     if_else(!is.na(ad_clip) & is.na(cwt),
-                                             "HOR-SN",
-                                             if_else(!is.na(cwt),
-                                                     "HOR-C",
-                                                     "HOR-C")))) |>
+    dplyr::mutate(mark_grp = dplyr::case_when(origin == "W" ~ "W",
+                                              ad_clip & !cwt ~ "HOR-SN",
+                                              cwt ~ "HOR-C",
+                                              .default = NA_character_)) |>
+    # dplyr::mutate(mark_grp = if_else(origin == "W",
+    #                                  "W",
+    #                                  if_else(!is.na(ad_clip) & is.na(cwt),
+    #                                          "HOR-SN",
+    #                                          if_else(!is.na(cwt),
+    #                                                  "HOR-C",
+    #                                                  "HOR-C")))) |>
     dplyr::mutate(
       dplyr::across(
         mark_grp,
@@ -146,16 +181,21 @@ prep_met_sthd_data <- function(
   #-------------------------------------------------------
   # generate fish / redd and pHOS for different areas
   fpr_all = met_tags_all |>
+    dplyr::mutate(
+      dplyr::across(c(sex),
+                    ~ dplyr::recode(.,
+                                    "Male" = "M",
+                                    "Female" = "F"))) |>
     dplyr::group_by(spawn_year,
                     location) |>
-    dplyr::summarize(n_male = n_distinct(tag_code[sex == "M"]),
-                     n_female = n_distinct(tag_code[sex == "F"]),
+    dplyr::summarize(n_male = dplyr::n_distinct(tag_code[sex == "M"]),
+                     n_female = dplyr::n_distinct(tag_code[sex == "F"]),
                      n_sexed = n_male + n_female,
-                     n_wild = n_distinct(tag_code[origin == "W"]),
-                     n_hatch = n_distinct(tag_code[origin == "H"]),
+                     n_wild = dplyr::n_distinct(tag_code[origin == "W"]),
+                     n_hatch = dplyr::n_distinct(tag_code[origin == "H"]),
                      n_origin = n_wild + n_hatch,
-                     n_hor_sn = n_distinct(tag_code[mark_grp == "HOR-SN"]),
-                     n_hor_c = n_distinct(tag_code[mark_grp == "HOR-C"]),
+                     n_hor_sn = dplyr::n_distinct(tag_code[mark_grp == "HOR-SN"]),
+                     n_hor_c = dplyr::n_distinct(tag_code[mark_grp == "HOR-C"]),
                      .groups = "drop") |>
     dplyr::mutate(prop_m = n_male / n_sexed,
                   prop_se = sqrt((prop_m * (1 - prop_m)) / (n_sexed)),
@@ -176,6 +216,11 @@ prep_met_sthd_data <- function(
   # estimate error rate for each sex
   sex_err_rate <-
     all_tags |>
+    dplyr::mutate(
+      dplyr::across(c(sex),
+                    ~ dplyr::recode(.,
+                                    "Male" = "M",
+                                    "Female" = "F"))) |>
     dplyr::select(spawn_year,
                   tag_code,
                   sex_field = sex) |>
@@ -189,8 +234,7 @@ prep_met_sthd_data <- function(
                                       tag_code,
                                       sex_final) |>
                         dplyr::distinct(),
-                      by = c("spawn_year",
-                             "tag_code")) |>
+                      by = dplyr::join_by(spawn_year, tag_code)) |>
     dplyr::filter(!is.na(sex_final),
                   !is.na(sex_field)) |>
     dplyr::mutate(agree = dplyr::if_else(sex_field == sex_final,
@@ -201,11 +245,11 @@ prep_met_sthd_data <- function(
                      n_true = sum(agree),
                      n_false = sum(!agree),
                      .groups = "drop") |>
-    dplyr::mutate(binom_ci = map2(n_false,
+    dplyr::mutate(binom_ci = purrr::map2(n_false,
                                   n_tags,
                                   .f = function(x, y) {
                                     DescTools::BinomCI(x, y) |>
-                                      as_tibble()
+                                      dplyr::as_tibble()
                                   })) |>
     tidyr::unnest(binom_ci) |>
     janitor::clean_names() |>
@@ -233,9 +277,9 @@ prep_met_sthd_data <- function(
                     stringr::str_to_title)) |>
     dplyr::mutate(
       dplyr::across(sex,
-                    ~ recode(.,
-                             "Male" = "M",
-                             "Female" = "F"))) |>
+                    ~ dplyr::recode(.,
+                                    "Male" = "M",
+                                    "Female" = "F"))) |>
     dplyr::left_join(sex_err_rate |>
                        dplyr::select(spawn_year,
                                      sex,
@@ -325,13 +369,85 @@ prep_met_sthd_data <- function(
 
   #-----------------------------------------------------------------
   # read in data about known removals of fish prior to spawning
-  removal_df <- readr::read_csv(paste(removal_file_path,
-                                      removal_file_name,
-                                      sep = "/"),
-                                show_col_types = F) |>
-    janitor::clean_names() |>
-    dplyr::filter(subbasin == "Methow",
-                  spawn_year %in% query_year)
+  if(file.exists(paste(removal_file_path,
+                       removal_file_name,
+                       sep = "/"))) {
+    if(stringr::str_detect(removal_file_name, "csv$")) {
+      removal_df <- readr::read_csv(paste(removal_file_path,
+                                          removal_file_name,
+                                          sep = "/")) |>
+        janitor::clean_names() |>
+        dplyr::filter(subbasin == "Wenatchee",
+                      spawn_year %in% query_year)
+    }
+    if(stringr::str_detect(removal_file_name, "xls$") |
+       stringr::str_detect(removal_file_name, "xlsx$")) {
+
+      removal_df <- readxl::read_excel(paste(removal_file_path,
+                                             removal_file_name,
+                                             sep = "/"),
+                                       skip = 3,
+                                       col_names = c("run cycle",
+                                                     "spawn year",
+                                                     "population",
+                                                     "removal location",
+                                                     "agency",
+                                                     "adult trapping surplus H",
+                                                     "brood collections H",
+                                                     "harvest H",
+                                                     "adult trapping surplus W",
+                                                     "brood collections W",
+                                                     "harvest W",
+                                                     "all removals H",
+                                                     "all removals W",
+                                                     "all removals T",
+                                                     "notes")) |>
+        janitor::clean_names() |>
+        dplyr::mutate(
+          across(
+            c(ends_with("_h"),
+              ends_with("_w"),
+              ends_with("_t")),
+            as.numeric
+          )) |>
+        dplyr::filter(!is.na(spawn_year)) |>
+        dplyr::select(spawn_year:harvest_w) |>
+        tidyr::pivot_longer(cols = c(ends_with("_h"),
+                                     ends_with("_w")),
+                            names_to = "source",
+                            values_to = "removed") |>
+        dplyr::mutate(origin = stringr::str_sub(source, -1)) |>
+        dplyr::relocate(origin,
+                        .before = "removed") |>
+        dplyr::filter(origin %in% c("h", "w")) |>
+        dplyr::mutate(
+          dplyr::across(
+            source,
+            ~ stringr::str_remove(.,
+                                  "_h$")),
+          dplyr::across(
+            source,
+            ~ stringr::str_remove(.,
+                                  "_w$")),
+          dplyr::across(
+            source,
+            ~ stringr::str_to_title(stringr::str_replace_all(., "_", " "))
+          ),
+          dplyr::across(
+            origin,
+            ~ dplyr::recode(.,
+                            "h" = "Hatchery",
+                            "w" = "Natural")
+          )
+        ) |>
+        dplyr::filter(spawn_year %in% query_year,
+                      population == "Methow")
+    }
+
+  } else {
+    message("Removal data not found.\n")
+    removal_df <- NULL
+  }
 
   #-----------------------------------------------------------------
   # pull in some estimates from DABOM
@@ -348,7 +464,7 @@ prep_met_sthd_data <- function(
                                                                   query_year = yr,
                                                                   result_type = "escape_summ")
                                      })) |>
-    select(-c(spawn_year,
+    dplyr::select(-c(spawn_year,
               dam_nm)) |>
     tidyr::unnest(escp) |>
     dplyr::filter(location %in% c('LMR',
@@ -389,19 +505,19 @@ prep_met_sthd_data <- function(
                   uci) |>
     dplyr::mutate(
       dplyr::across(origin,
-                    ~ recode(.,
-                             "W" = "Natural",
-                             "H" = "Hatchery")),
+                    ~ dplyr::recode(.,
+                                    "W" = "Natural",
+                                    "H" = "Hatchery")),
       dplyr::across(location,
-                    ~ recode(.,
-                             "GLC" = "Gold",
-                             "LBC" = "Libby",
-                             "MSH" = "Methow Fish Hatchery",
-                             "MRW" = "Upper Methow",
-                             "TWR" = "Twisp",
-                             "CRW" = "Chewuch",
-                             "SCP" = "Spring Creek",
-                             "BVC" = "Beaver"))) |>
+                    ~ dplyr::recode(.,
+                                    "GLC" = "Gold",
+                                    "LBC" = "Libby",
+                                    "MSH" = "Methow Fish Hatchery",
+                                    "MRW" = "Upper Methow",
+                                    "TWR" = "Twisp",
+                                    "CRW" = "Chewuch",
+                                    "SCP" = "Spring Creek",
+                                    "BVC" = "Beaver"))) |>
     dplyr::arrange(location, origin)
 
   # pull out mainstem escapement estimates
@@ -442,7 +558,7 @@ prep_met_sthd_data <- function(
                                                                   query_year = yr,
                                                                   result_type = "escape_post")
                                      })) |>
-    select(-dam_nm) |>
+    dplyr::select(-dam_nm) |>
     tidyr::unnest(post) |>
     dplyr::rename(location = param) |>
     dplyr::filter(location %in% c('LMR',
@@ -473,58 +589,58 @@ prep_met_sthd_data <- function(
     dplyr::group_by(spawn_year,
                     location,
                     origin) |>
-    summarize(estimate = median(escp),
-              se = sd(escp),
-              lci = coda::HPDinterval(coda::as.mcmc(escp))[,1],
-              uci = coda::HPDinterval(coda::as.mcmc(escp))[,2],
-              .groups = "drop")
+    dplyr::summarize(estimate = median(escp),
+                     se = sd(escp),
+                     lci = coda::HPDinterval(coda::as.mcmc(escp))[,1],
+                     uci = coda::HPDinterval(coda::as.mcmc(escp))[,2],
+                     .groups = "drop")
 
   #-----------------------------------------------------------------
   # use escapement estimates rather than tags to estimate pHOS
   if(phos_data == "escapement") {
     escp_phos <-
       escp_met_all |>
-      bind_rows(trib_spawners_all |>
-                  rename(estimate = spawners,
-                         se = spawners_se)) |>
-      select(spawn_year,
-             location,
-             origin,
-             estimate,
-             se) |>
-      pivot_wider(names_from = origin,
-                  values_from = c(estimate, se)) |>
-      rowwise() |>
-      mutate(phos = estimate_Hatchery / (estimate_Hatchery + estimate_Natural),
-             phos_se = msm::deltamethod(~ x1 / (x1 + x2),
-                                        mean = c(estimate_Hatchery,
-                                                 estimate_Natural),
-                                        cov = diag(c(se_Hatchery,
-                                                     se_Natural)^2))) |>
-      ungroup()
+      dplyr::bind_rows(trib_spawners_all |>
+                         dplyr::rename(estimate = spawners,
+                                       se = spawners_se)) |>
+      dplyr::select(spawn_year,
+                    location,
+                    origin,
+                    estimate,
+                    se) |>
+      tidyr::pivot_wider(names_from = origin,
+                         values_from = c(estimate, se)) |>
+      dplyr::rowwise() |>
+      dplyr::mutate(phos = estimate_Hatchery / (estimate_Hatchery + estimate_Natural),
+                    phos_se = msm::deltamethod(~ x1 / (x1 + x2),
+                                               mean = c(estimate_Hatchery,
+                                                        estimate_Natural),
+                                               cov = diag(c(se_Hatchery,
+                                                            se_Natural)^2))) |>
+      dplyr::ungroup()
 
     fpr_all <-
       fpr_all |>
-      left_join(escp_phos |>
-                  select(spawn_year,
-                         location,
-                         phos2 = phos,
-                         phos_se2 = phos_se),
-                by = join_by(spawn_year, location)) |>
-      mutate(
-        across(
+      dplyr::left_join(escp_phos |>
+                         dplyr::select(spawn_year,
+                                       location,
+                                       phos2 = phos,
+                                       phos_se2 = phos_se),
+                       by = dplyr::join_by(spawn_year, location)) |>
+      dplyr::mutate(
+        dplyr::across(
           phos,
-          ~ if_else(!is.na(phos2),
-                    phos2,
-                    .)),
-        across(
+          ~ dplyr::if_else(!is.na(phos2),
+                           phos2,
+                           .)),
+        dplyr::across(
           phos_se,
-          ~ if_else(!is.na(phos_se2),
-                    phos_se2,
-                    .))
+          ~ dplyr::if_else(!is.na(phos_se2),
+                           phos_se2,
+                           .))
       ) |>
-      select(-c(phos2,
-                phos_se2))
+      dplyr::select(-c(phos2,
+                       phos_se2))
 
   }
 

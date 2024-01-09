@@ -58,11 +58,14 @@ prep_wen_sthd_data <- function(
   if(!is.null(redd_df_all)) {
     # divide reaches into various location categories
     redd_df_all <- redd_df_all |>
-      dplyr::mutate(location = dplyr::if_else(reach %in% paste0("W", 8:10),
-                                              "Above Tumwater",
-                                              dplyr::if_else(reach %in% paste0("W", 1:7),
-                                                             "Below Tumwater",
-                                                             "Tributaries")))
+      dplyr::mutate(location = dplyr::case_when(reach %in% paste0("W", 8:10) ~ "Above Tumwater",
+                                                reach %in% paste0("W", 1:7) ~ "Below Tumwater",
+                                                .default = "Tributaries"))
+
+    # drop surveys that didn't actually happen (NAs for new redds)
+    redd_df_all <-
+      redd_df_all |>
+      filter(!is.na(new_redds))
 
     # predict net error
     redd_df_all <- redd_df_all |>
@@ -591,20 +594,20 @@ prep_wen_sthd_data <- function(
                                        phos2 = phos,
                                        phos_se2 = phos_se),
                        by = dplyr::join_by(spawn_year, location)) |>
-      mutate(
-        across(
+      dplyr::mutate(
+        dplyr::across(
           phos,
-          ~ if_else(!is.na(phos2),
-                    phos2,
-                    .)),
-        across(
+          ~ dplyr::if_else(!is.na(phos2),
+                           phos2,
+                           .)),
+        dplyr::across(
           phos_se,
-          ~ if_else(!is.na(phos_se2),
-                    phos_se2,
-                    .))
+          ~ dplyr::if_else(!is.na(phos_se2),
+                           phos_se2,
+                           .))
       ) |>
-      select(-c(phos2,
-                phos_se2))
+      dplyr::select(-c(phos2,
+                       phos_se2))
 
   }
 
