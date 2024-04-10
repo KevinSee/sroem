@@ -40,9 +40,10 @@ correlate_rchs <- function(redd_df = NULL,
   } else {
     # check the class of survey date column
     date_class <- redd_df |>
-      pull({{ date_nm }}) |>
-      class()
-    if (date_class == "Date") {
+      pull({{ date_nm }}) #|>
+    #   class()
+    # if (date_class == "Date") {
+    if(inherits(date_class, "Date")) {
       redd_df <- redd_df |>
         mutate(across(
           {{ date_nm }},

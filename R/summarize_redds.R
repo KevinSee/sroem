@@ -144,7 +144,7 @@ summarize_redds <- function(redd_df = NULL,
             silent = T
           )
 
-          if (class(se)[1] == "try-error" | is.na(se)) {
+          if (inherits(se, "try-error") | is.na(se)) {
             se <- sqrt(sum(x$redd_se^2, na.rm = T))
           }
 
