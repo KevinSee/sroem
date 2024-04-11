@@ -1,7 +1,7 @@
 # Author: Kevin See
 # Purpose: Fit redd observer net error models
 # Created: 1/27/23
-# Last Modified: 3/8/23/23
+# Last Modified: 3/8/23
 # Notes: one observer steelhead data comes from the Wenatchee, two observer steelhead from the Methow
 
 #-----------------------------------------------------------------
@@ -32,9 +32,10 @@ one_obs_sthd <- read_csv("data-raw/one_obs_sthd_redd_data.csv") |>
       mdy),
     across(
       stream,
-      recode,
-      "Pes" = "Peshastin",
-      "Wen" = "Wenatchee"
+      ~ case_match(.,
+                   "Pes" ~ "Peshastin",
+                   "Wen" ~ "Wenatchee",
+                   .default = .)
     )
   ) |>
   mutate(reach_length_km = reach_length_m / 1000) |>
@@ -170,9 +171,8 @@ two_obs_covar_center <- two_obs_sthd |>
   summarize(
     across(
       values,
-      list(mean = mean,
-           sd = sd),
-      na.rm = TRUE,
+      list(mean = ~ mean(., na.rm = T),
+           sd = ~ sd(., na.rm = T)),
       .names = "{.fn}"
     ),
     .groups = "drop")
@@ -198,7 +198,12 @@ two_obs_mod_df = two_obs_sthd |>
   pivot_wider(names_from = metric,
               values_from = value)
 
-two_obs_net_mod <- glm(net_error ~ exp_sp_total_log + mean_discharge + mean_thalweg_cv + naive_density_km,
+two_obs_net_mod <-
+  glm(net_error ~
+        exp_sp_total_log +
+        mean_discharge +
+        mean_thalweg_cv +
+        naive_density_km,
                        data = two_obs_mod_df,
                        family = gaussian)
 
