@@ -24,24 +24,24 @@
 #' @export
 
 prep_wen_sthd_data <- function(
-  redd_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Redd Data",
-  redd_file_name = "Wenatchee_Redd_Surveys.xlsx",
-  experience_path = redd_file_path,
-  experience_file_name = redd_file_name,
-  dabom_file_path = "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
-  dabom_file_name = "UC_Sthd_DABOM_",
-  brood_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Bio Data/Sex and Origin PRD-Brood Comparison Data",
-  brood_file_name = "STHD UC Brood Collections_2011 to current.xlsx",
-  removal_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Fish Removals",
-  removal_file_name = "Master_STHD_Removals_2.18.23.MH.xlsx",
-  n_observers = "two",
-  query_year = lubridate::year(lubridate::today()) - 1,
-  phos_data = c("escapement",
-                "tags"),
-  save_rda = F,
-  save_by_year = T,
-  save_file_path = here::here("analysis/data/derived_data"),
-  save_file_name = NULL
+    redd_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Redd Data",
+    redd_file_name = "Wenatchee_Redd_Surveys.xlsx",
+    experience_path = redd_file_path,
+    experience_file_name = redd_file_name,
+    dabom_file_path = "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
+    dabom_file_name = "UC_Sthd_DABOM_",
+    brood_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Bio Data/Sex and Origin PRD-Brood Comparison Data",
+    brood_file_name = "STHD UC Brood Collections_2011 to current.xlsx",
+    removal_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Fish Removals",
+    removal_file_name = "Master_STHD_Removals_2.18.23.MH.xlsx",
+    n_observers = "two",
+    query_year = lubridate::year(lubridate::today()) - 1,
+    phos_data = c("escapement",
+                  "tags"),
+    save_rda = F,
+    save_by_year = T,
+    save_file_path = here::here("analysis/data/derived_data"),
+    save_file_name = NULL
 ) {
 
   message("\t Gathering redd data.\n")
@@ -409,15 +409,15 @@ prep_wen_sthd_data <- function(
   message("\t Gathering PIT escapement estimates.\n")
 
   all_escp <- dabom_df |>
-    dplyr::mutate(escp = purrr::map(spawn_year,
-                                    dam_nm,
-                                    .f = function(yr, dam_nm) {
-                                      sroem::query_dabom_results(dabom_file_path = dabom_file_path,
-                                                                 dabom_dam_nm = dam_nm,
-                                                                 dabom_file_name = dabom_file_name,
-                                                                 query_year = yr,
-                                                                 result_type = "escape_summ")
-                                    })) |>
+    dplyr::mutate(escp = purrr::map2(spawn_year,
+                                     dam_nm,
+                                     .f = function(yr, dam_nm) {
+                                       sroem::query_dabom_results(dabom_file_path = dabom_file_path,
+                                                                  dabom_dam_nm = dam_nm,
+                                                                  dabom_file_name = dabom_file_name,
+                                                                  query_year = yr,
+                                                                  result_type = "escape_summ")
+                                     })) |>
     dplyr::select(-c(spawn_year,
                      dam_nm)) |>
     tidyr::unnest(escp) |>
