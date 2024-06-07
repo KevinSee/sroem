@@ -26,7 +26,9 @@ query_redd_data <- function(
                     sep = "/")
 
   if(!file.exists(data_file)) {
-    stop("File not found.")
+    # stop("File not found.")
+    warning("Redd data file not found.")
+    return(NULL)
   }
 
   if(is.null(experience_path)) {
