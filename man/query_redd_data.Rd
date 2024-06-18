@@ -8,8 +8,8 @@ query_redd_data(
   redd_file_path =
     "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Redd Data",
   redd_file_name = "Wenatchee_Redd_Surveys.xlsx",
-  experience_path = redd_file_path,
-  experience_file_name = redd_file_name,
+  experience_path = NULL,
+  experience_file_name = NULL,
   query_year = lubridate::year(lubridate::today()) - 1
 )
 }

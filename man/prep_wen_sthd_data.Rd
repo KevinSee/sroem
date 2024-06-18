@@ -18,7 +18,7 @@ prep_wen_sthd_data(
   brood_file_name = "STHD UC Brood Collections_2011 to current.xlsx",
   removal_file_path =
     "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Fish Removals",
-  removal_file_name = "Master_STHD_Removals_2.18.23.MH.xlsx",
+  removal_file_name = "Master_STHD_Removals.xlsx",
   n_observers = "two",
   query_year = lubridate::year(lubridate::today()) - 1,
   phos_data = c("escapement", "tags"),
