@@ -140,7 +140,7 @@ estimate_redds <- function(redd_df = NULL,
                                )
 
                                res_list <- c(
-                                 res_list,
+                                 as.list(res_list),
                                  list("mod_data" = mod_df)
                                )
 

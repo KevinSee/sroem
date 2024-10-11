@@ -12,26 +12,26 @@
 #' @export
 
 prep_met_sthd_data <- function(
-  redd_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Redd Data",
-  redd_file_name = "Methow_Redd_Surveys.xlsx",
-  experience_path = redd_file_path,
-  experience_file_name = redd_file_name,
-  dabom_file_path = "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
-  dabom_file_name = "UC_Sthd_DABOM_",
-  brood_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Bio Data/Sex and Origin PRD-Brood Comparison Data",
-  brood_file_name = "STHD UC Brood Collections_2011 to current.xlsx",
-  # removal_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Fish Removals/Archived",
-  # removal_file_name = "UC_Removals.csv",
-  removal_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Fish Removals",
-  removal_file_name = "Master_STHD_Removals_2.18.23.MH.xlsx",
-  n_observers = "two",
-  query_year = lubridate::year(lubridate::today()) - 1,
-  phos_data = c("escapement",
-                "tags"),
-  save_rda = F,
-  save_by_year = T,
-  save_file_path = here::here("analysis/data/derived_data"),
-  save_file_name = NULL
+    redd_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Redd Data",
+    redd_file_name = "Methow_Redd_Surveys.xlsx",
+    experience_path = redd_file_path,
+    experience_file_name = redd_file_name,
+    dabom_file_path = "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
+    dabom_file_name = "UC_Sthd_DABOM_",
+    brood_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Bio Data/Sex and Origin PRD-Brood Comparison Data",
+    brood_file_name = "STHD UC Brood Collections_2011 to current.xlsx",
+    # removal_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Fish Removals/Archived",
+    # removal_file_name = "UC_Removals.csv",
+    removal_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Fish Removals",
+    removal_file_name = "Master_STHD_Removals_2.18.23.MH.xlsx",
+    n_observers = "two",
+    query_year = lubridate::year(lubridate::today()) - 1,
+    phos_data = c("escapement",
+                  "tags"),
+    save_rda = F,
+    save_by_year = T,
+    save_file_path = here::here("analysis/data/derived_data"),
+    save_file_name = NULL
 ) {
 
   phos_data = match.arg(phos_data)
@@ -184,9 +184,10 @@ prep_met_sthd_data <- function(
   fpr_all = met_tags_all |>
     dplyr::mutate(
       dplyr::across(c(sex),
-                    ~ dplyr::recode(.,
-                                    "Male" = "M",
-                                    "Female" = "F"))) |>
+                    ~ dplyr::case_match(.,
+                                        "Male" ~ "M",
+                                        "Female" ~ "F",
+                                        .default = .))) |>
     dplyr::group_by(spawn_year,
                     location) |>
     dplyr::summarize(n_male = dplyr::n_distinct(tag_code[sex == "M"]),
@@ -219,9 +220,10 @@ prep_met_sthd_data <- function(
     all_tags |>
     dplyr::mutate(
       dplyr::across(c(sex),
-                    ~ dplyr::recode(.,
-                                    "Male" = "M",
-                                    "Female" = "F"))) |>
+                    ~ dplyr::case_match(.,
+                                        "Male" ~ "M",
+                                        "Female" ~ "F",
+                                        .default = .))) |>
     dplyr::select(spawn_year,
                   tag_code,
                   sex_field = sex) |>
@@ -247,11 +249,11 @@ prep_met_sthd_data <- function(
                      n_false = sum(!agree),
                      .groups = "drop") |>
     dplyr::mutate(binom_ci = purrr::map2(n_false,
-                                  n_tags,
-                                  .f = function(x, y) {
-                                    DescTools::BinomCI(x, y) |>
-                                      dplyr::as_tibble()
-                                  })) |>
+                                         n_tags,
+                                         .f = function(x, y) {
+                                           DescTools::BinomCI(x, y) |>
+                                             dplyr::as_tibble()
+                                         })) |>
     tidyr::unnest(binom_ci) |>
     janitor::clean_names() |>
     dplyr::rename(perc_false = est,
@@ -278,9 +280,10 @@ prep_met_sthd_data <- function(
                     stringr::str_to_title)) |>
     dplyr::mutate(
       dplyr::across(sex,
-                    ~ dplyr::recode(.,
-                                    "Male" = "M",
-                                    "Female" = "F"))) |>
+                    ~ dplyr::case_match(.,
+                                        "Male" ~ "M",
+                                        "Female" ~ "F",
+                                        .default = .))) |>
     dplyr::left_join(sex_err_rate |>
                        dplyr::select(spawn_year,
                                      sex,
@@ -436,9 +439,10 @@ prep_met_sthd_data <- function(
           ),
           dplyr::across(
             origin,
-            ~ dplyr::recode(.,
-                            "h" = "Hatchery",
-                            "w" = "Natural")
+            ~ dplyr::case_match(.,
+                                "h" ~ "Hatchery",
+                                "w" ~ "Natural",
+                                .default = .)
           )
         ) |>
         dplyr::filter(spawn_year %in% query_year,
@@ -466,7 +470,7 @@ prep_met_sthd_data <- function(
                                                                   result_type = "escape_summ")
                                      })) |>
     dplyr::select(-c(spawn_year,
-              dam_nm)) |>
+                     dam_nm)) |>
     tidyr::unnest(escp) |>
     dplyr::filter(location %in% c('LMR',
                                   'LMR_bb',
@@ -506,19 +510,21 @@ prep_met_sthd_data <- function(
                   uci) |>
     dplyr::mutate(
       dplyr::across(origin,
-                    ~ dplyr::recode(.,
-                                    "W" = "Natural",
-                                    "H" = "Hatchery")),
+                    ~ dplyr::case_match(.,
+                                        "W" ~ "Natural",
+                                        "H" ~ "Hatchery",
+                                        .default = .)),
       dplyr::across(location,
-                    ~ dplyr::recode(.,
-                                    "GLC" = "Gold",
-                                    "LBC" = "Libby",
-                                    "MSH" = "Methow Fish Hatchery",
-                                    "MRW" = "Upper Methow",
-                                    "TWR" = "Twisp",
-                                    "CRW" = "Chewuch",
-                                    "SCP" = "Spring Creek",
-                                    "BVC" = "Beaver"))) |>
+                    ~ dplyr::case_match(.,
+                                        "GLC" ~ "Gold",
+                                        "LBC" ~ "Libby",
+                                        "MSH" ~ "Methow Fish Hatchery",
+                                        "MRW" ~ "Upper Methow",
+                                        "TWR" ~ "Twisp",
+                                        "CRW" ~ "Chewuch",
+                                        "SCP" ~ "Spring Creek",
+                                        "BVC" ~ "Beaver",
+                                        .default = .))) |>
     dplyr::arrange(location, origin)
 
   # pull out mainstem escapement estimates
@@ -528,15 +534,15 @@ prep_met_sthd_data <- function(
   #                                 'MRC_bb')) |>
   #   dplyr::mutate(
   #     dplyr::across(location,
-  #                   recode,
-  #                   'LMR' = 'Methow_all',
-  #                   'LMR_bb' = 'Lower Methow',
-  #                   'MRC_bb' = 'Lower Methow')) |>
+  #                   ~ case_match(.,
+  #                   'LMR' ~ 'Methow_all',
+  #                   'LMR_bb' ~ 'Lower Methow',
+  #                   'MRC_bb' ~ 'Lower Methow'))) |>
   #   dplyr::mutate(
   #     dplyr::across(origin,
-  #                   recode,
-  #                   "W" = "Natural",
-  #                   "H" = "Hatchery")) |>
+  #                   ~ case_match(.,
+  #                   "W" ~ "Natural",
+  #                   "H" ~ "Hatchery"))) |>
   #   dplyr::group_by(spawn_year,
   #                   location,
   #                   origin) |>
@@ -568,16 +574,18 @@ prep_met_sthd_data <- function(
     dplyr::mutate(
       dplyr::across(
         location,
-        ~ dplyr::recode(.,
-                        'LMR' = 'Methow_all',
-                        'LMR_bb' = 'Lower Methow',
-                        'MRC_bb' = 'Lower Methow'))) |>
+        ~ dplyr::case_match(.,
+                            'LMR' ~ 'Methow_all',
+                            'LMR_bb' ~ 'Lower Methow',
+                            'MRC_bb' ~ 'Lower Methow',
+                            .default = .))) |>
     dplyr::mutate(
       dplyr::across(
         origin,
-        ~ dplyr::recode(.,
-                        "W" = "Natural",
-                        "H" = "Hatchery"))) |>
+        ~ dplyr::case_match(.,
+                            "W" ~ "Natural",
+                            "H" ~ "Hatchery",
+                            .default = .))) |>
     dplyr::group_by(spawn_year,
                     location,
                     origin,

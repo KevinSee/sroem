@@ -5,7 +5,7 @@
 \title{Gaussian Area-Under-the-Curve}
 \usage{
 fit_gauc(
-  data,
+  data = NULL,
   SL = 1,
   SL_se = 0,
   v = 1,

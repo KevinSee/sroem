@@ -108,25 +108,20 @@ prep_wen_sthd_data <- function(
   wen_tags_all <-
     all_tags |>
     dplyr::filter(stringr::str_detect(path, "LWE")) |>
-    dplyr::mutate(location = dplyr::if_else(final_node %in% c('TUM', 'UWE'),
-                                            'Above Tumwater',
-                                            dplyr::if_else(stringr::str_detect(final_node, "^LWE"),
-                                                           "Below Tumwater",
-                                                           dplyr::if_else(stringr::str_detect(path, "CHL"),
-                                                                          "Chiwawa",
-                                                                          dplyr::if_else(stringr::str_detect(path, "NAL"),
-                                                                                         "Nason",
-                                                                                         dplyr::if_else(stringr::str_detect(path, "PES"),
-                                                                                                        "Peshastin",
-                                                                                                        "Other Tributaries"))))),
-                  dplyr::across(location,
-                                ~ factor(.,
-                                         levels = c("Below Tumwater",
-                                                    'Above Tumwater',
-                                                    "Peshastin",
-                                                    "Nason",
-                                                    "Chiwawa",
-                                                    'Other Tributaries')))) |>
+    dplyr::mutate(location = dplyr::case_when(final_node %in% c("TUM", "UWE") ~ "Above Tumwater",
+                                              stringr::str_detect(final_node, "^LWE") ~ "Below Tumwater",
+                                              stringr::str_detect(path, "CHL") ~ "Chiwawa",
+                                              stringr::str_detect(path, "NAL") ~ "Nason",
+                                              stringr::str_detect(path, "PES") ~ "Peshastin",
+                                              .default = "Other Tributaries") |>
+                    dplyr::across(location,
+                                  ~ factor(.,
+                                           levels = c("Below Tumwater",
+                                                      'Above Tumwater',
+                                                      "Peshastin",
+                                                      "Nason",
+                                                      "Chiwawa",
+                                                      'Other Tributaries')))) |>
     dplyr::select(spawn_year,
                   tag_code,
                   location,
@@ -137,9 +132,10 @@ prep_wen_sthd_data <- function(
   # generate fish / redd and pHOS for different areas
   fpr_all = wen_tags_all |>
     dplyr::mutate(across(c(sex),
-                         ~ dplyr::recode(.,
-                                         "Male" = "M",
-                                         "Female" = "F"))) |>
+                         ~ dplyr::case_match(.,
+                                             "Male" ~ "M",
+                                             "Female" ~ "F",
+                                             .default = .))) |>
     dplyr::group_by(spawn_year,
                     location) |>
     dplyr::summarize(n_male = dplyr::n_distinct(tag_code[sex == "M"]),
@@ -187,9 +183,10 @@ prep_wen_sthd_data <- function(
                   !is.na(sex_field)) |>
     dplyr::mutate(across(c(sex_field,
                            sex_final),
-                         ~ dplyr::recode(.,
-                                         "Male" = "M",
-                                         "Female" = "F"))) |>
+                         ~ dplyr::case_match(.,
+                                             "Male" ~ "M",
+                                             "Female" ~ "F",
+                                             .default = .))) |>
     dplyr::mutate(agree = dplyr::if_else(sex_field == sex_final,
                                          T, F)) |>
     dplyr::group_by(spawn_year,
@@ -231,9 +228,10 @@ prep_wen_sthd_data <- function(
                     stringr::str_to_title)) |>
     dplyr::mutate(
       dplyr::across(sex,
-                    ~ dplyr::recode(.,
-                                    "Male" = "M",
-                                    "Female" = "F"))) |>
+                    ~ dplyr::case_match(.,
+                                        "Male" ~ "M",
+                                        "Female" ~ "F",
+                                        .default = .))) |>
     dplyr::left_join(sex_err_rate |>
                        dplyr::select(spawn_year,
                                      sex,
@@ -388,9 +386,9 @@ prep_wen_sthd_data <- function(
           ),
           dplyr::across(
             origin,
-            ~ dplyr::recode(.,
-                            "h" = "Hatchery",
-                            "w" = "Natural")
+            ~ dplyr::case_match(.,
+                                "h" ~ "Hatchery",
+                                "w" ~ "Natural")
           )
         ) |>
         dplyr::filter(spawn_year %in% query_year,
@@ -463,21 +461,21 @@ prep_wen_sthd_data <- function(
     dplyr::mutate(
       dplyr::across(
         origin,
-        ~ dplyr::recode(.,
-                        "W" = "Natural",
-                        "H" = "Hatchery")),
+        ~ dplyr::case_match(.,
+                            "W" ~ "Natural",
+                            "H" ~ "Hatchery")),
       dplyr::across(
         location,
-        ~ dplyr::recode(.,
-                        'CHL' = 'Chiwawa',
-                        'CHM' = 'Chumstick',
-                        'CHW' = 'Chiwaukum',
-                        'ICL' = 'Icicle',
-                        'LWN' = 'Little Wenatchee',
-                        'MCL' = 'Mission',
-                        'NAL' = 'Nason',
-                        'PES' = 'Peshastin',
-                        'WTL' = 'White River'))) |>
+        ~ dplyr::case_match(.,
+                            'CHL' ~ 'Chiwawa',
+                            'CHM' ~ 'Chumstick',
+                            'CHW' ~ 'Chiwaukum',
+                            'ICL' ~ 'Icicle',
+                            'LWN' ~ 'Little Wenatchee',
+                            'MCL' ~ 'Mission',
+                            'NAL' ~ 'Nason',
+                            'PES' ~ 'Peshastin',
+                            'WTL' ~ 'White River'))) |>
     dplyr::arrange(location, origin)
 
   # pull out mainstem escapement estimates
@@ -489,17 +487,17 @@ prep_wen_sthd_data <- function(
   #   dplyr::mutate(
   #     dplyr::across(
   #       location,
-  #       ~ dplyr::recode(.,
-  #                       'LWE' = 'Wen_all',
-  #                       'LWE_bb' = 'Below Tumwater',
-  #                       'TUM_bb' = "Above Tumwater",
-  #                       'UWE_bb' = 'Above Tumwater'))) |>
+  #       ~ dplyr::case_match(.,
+  #                       'LWE' ~ 'Wen_all',
+  #                       'LWE_bb' ~ 'Below Tumwater',
+  #                       'TUM_bb' ~ "Above Tumwater",
+  #                       'UWE_bb' ~ 'Above Tumwater'))) |>
   #   dplyr::mutate(
   #     dplyr::across(
   #       origin,
-  #       ~ dplyr::recode(.,
-  #                       "W" = "Natural",
-  #                       "H" = "Hatchery"))) |>
+  #       ~ dplyr::case_match(.,
+  #                       "W" ~ "Natural",
+  #                       "H" ~ "Hatchery"))) |>
   #   dplyr::group_by(spawn_year,
   #                   location,
   #                   origin) |>
@@ -532,17 +530,17 @@ prep_wen_sthd_data <- function(
     dplyr::mutate(
       dplyr::across(
         location,
-        ~ dplyr::recode(.,
-                        'LWE' = 'Wen_all',
-                        'LWE_bb' = 'Below Tumwater',
-                        'TUM_bb' = "Above Tumwater",
-                        'UWE_bb' = 'Above Tumwater'))) |>
+        ~ dplyr::case_match(.,
+                            'LWE' ~ 'Wen_all',
+                            'LWE_bb' ~ 'Below Tumwater',
+                            'TUM_bb' ~ "Above Tumwater",
+                            'UWE_bb' ~ 'Above Tumwater'))) |>
     dplyr::mutate(
       dplyr::across(
         origin,
-        ~ dplyr::recode(.,
-                        "W" = "Natural",
-                        "H" = "Hatchery"))) |>
+        ~ dplyr::case_match(.,
+                            "W" ~ "Natural",
+                            "H" ~ "Hatchery"))) |>
     dplyr::group_by(spawn_year,
                     location,
                     origin,
