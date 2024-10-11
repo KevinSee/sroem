@@ -119,26 +119,17 @@ prep_met_sthd_data <- function(
   met_tags_all <-
     all_tags |>
     dplyr::filter(stringr::str_detect(path, "LMR")) |>
-    dplyr::mutate(location = dplyr::if_else(stringr::str_detect(final_node, "^MRC") |
-                                              stringr::str_detect(final_node, "^LMR"),
-                                            'Lower Methow',
-                                            dplyr::if_else(stringr::str_detect(path, " LBC"),
-                                                           "Libby",
-                                                           dplyr::if_else(stringr::str_detect(path, " GLC"),
-                                                                          "Gold",
-                                                                          dplyr::if_else(stringr::str_detect(path, " BVC"),
-                                                                                         "Beaver",
-                                                                                         dplyr::if_else(stringr::str_detect(path, " TWR"),
-                                                                                                        "Twisp",
-                                                                                                        dplyr::if_else(stringr::str_detect(path, " MSH"),
-                                                                                                                       "Methow Fish Hatchery",
-                                                                                                                       dplyr::if_else(stringr::str_detect(path, " SCP"),
-                                                                                                                                      "Spring Creek",
-                                                                                                                                      dplyr::if_else(stringr::str_detect(path, " CRW"),
-                                                                                                                                                     "Chewuch",
-                                                                                                                                                     dplyr::if_else(stringr::str_detect(path, " MRW"),
-                                                                                                                                                                    "Upper Methow",
-                                                                                                                                                                    NA_character_)))))))))) |>
+    dplyr::mutate(location = dplyr::case_when(stringr::str_detect(final_node, "^MRC") |
+                                                stringr::str_detect(final_node, "^LMR") ~ 'Lower Methow',
+                                              stringr::str_detect(path, " LBC") ~ "Libby",
+                                              stringr::str_detect(path, " GLC") ~ "Gold",
+                                              stringr::str_detect(path, " BVC") ~ "Beaver",
+                                              stringr::str_detect(path, " TWR") ~ "Twisp",
+                                              stringr::str_detect(path, " MSH") ~ "Methow Fish Hatchery",
+                                              stringr::str_detect(path, " SCP") ~ "Spring Creek",
+                                              stringr::str_detect(path, " CRW") ~ "Chewuch",
+                                              stringr::str_detect(path, " MRW") ~ "Upper Methow",
+                                              .default = NA_character_)) |>
     dplyr::mutate(
       dplyr::across(
         location,

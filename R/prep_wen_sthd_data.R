@@ -113,7 +113,7 @@ prep_wen_sthd_data <- function(
                                               stringr::str_detect(path, "CHL") ~ "Chiwawa",
                                               stringr::str_detect(path, "NAL") ~ "Nason",
                                               stringr::str_detect(path, "PES") ~ "Peshastin",
-                                              .default = "Other Tributaries") |>
+                                              .default = "Other Tributaries"),
                     dplyr::across(location,
                                   ~ factor(.,
                                            levels = c("Below Tumwater",
