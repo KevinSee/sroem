@@ -68,14 +68,18 @@ query_redd_data <- function(
 
 
   # slightly different format for experience tables between Wenatchee, Methow and Entiat
-  if(stringr::str_detect(redd_file_name, "Wenatchee")) {
+  # if(stringr::str_detect(redd_file_name, "Wenatchee")) {
+  if(stringr::str_detect(redd_file_name, "Wenatchee") |
+     stringr::str_detect(redd_file_name, "Methow")) {
+
 
     # get experience data
-    exp_df <- suppressMessages(readxl::read_excel(paste(experience_path,
+    exp_df <- readxl::read_excel(paste(experience_path,
                                                         experience_file_name,
                                                         sep = "/"),
                                                   sheet = "Experience",
-                                                  skip = 1)) |>
+                                                  skip = 1) |>
+      suppressMessages() |>
       dplyr::rename(basin = `...1`,
                     agency = `...2`,
                     surveyor_name = `...3`,
@@ -89,28 +93,29 @@ query_redd_data <- function(
           as.numeric
         )
       )
-  } else if(stringr::str_detect(redd_file_name, "Methow")) {
-    # get experience data
-    exp_df <- suppressMessages(readxl::read_excel(paste(experience_path,
-                                                        experience_file_name,
-                                                        sep = "/"),
-                                                  sheet = "Experience",
-                                                  skip = 1)) |>
-      dplyr::rename(basin = `...1`,
-                    # agency = `...2`,
-                    surveyor_name = `...2`,
-                    surveyor_initials = `...3`,
-                    notes = `...14`) |>
-      dplyr::select(-notes) |>
-      tidyr::pivot_longer(-c(basin:surveyor_initials),
-                          names_to = "spawn_year",
-                          values_to = "experience") |>
-      dplyr::mutate(
-        dplyr::across(
-          spawn_year,
-          as.numeric
-        )
-      )
+  # } else if(stringr::str_detect(redd_file_name, "Methow")) {
+  #   # get experience data
+  #   exp_df <- readxl::read_excel(paste(experience_path,
+  #                                      experience_file_name,
+  #                                      sep = "/"),
+  #                                sheet = "Experience",
+  #                                skip = 1) |>
+  #     suppressMessages() |>
+  #     dplyr::rename(basin = `...1`,
+  #                   agency = `...2`,
+  #                   surveyor_name = `...3`,
+  #                   surveyor_initials = `...4`,
+  #                   notes = `...14`) |>
+  #     dplyr::select(-notes) |>
+  #     tidyr::pivot_longer(-c(basin:surveyor_initials),
+  #                         names_to = "spawn_year",
+  #                         values_to = "experience") |>
+  #     dplyr::mutate(
+  #       dplyr::across(
+  #         spawn_year,
+  #         as.numeric
+  #       )
+  #     )
   } else if(stringr::str_detect(redd_file_name, "Entiat")) {
     # get experience data
     exp_df <- suppressMessages(readxl::read_excel(paste(experience_path,

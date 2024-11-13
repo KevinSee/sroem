@@ -22,7 +22,7 @@ fit_gauc <- function(data = NULL,
                      model_fam = c("quasipoisson", "negative.binomial")) {
 
   stopifnot(!is.null(data),
-            sum(c("redds", "day") %in% names(data)) != 2)
+            sum(c("redds", "day") %in% names(data)) == 2)
 
   model_fam <- match.arg(model_fam)
 

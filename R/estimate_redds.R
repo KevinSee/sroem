@@ -80,7 +80,7 @@ estimate_redds <- function(redd_df = NULL,
   if(gauc) {
     redd_results <- redd_results |>
       mutate(gauc_list = map(data,
-                             .f = function(x, ...) {
+                             .f = safely(function(x, ...) {
                                mod_df <- x %>%
                                  select(redds = {{ new_redd_nm }}) %>%
                                  mutate(day = 1:n())
@@ -145,8 +145,13 @@ estimate_redds <- function(redd_df = NULL,
                                )
 
                                return(res_list)
-                             }
+                             })
       )) %>%
+      mutate(any_error = map(gauc_list,
+                             "error"),
+             across(gauc_list,
+                    ~ map(.,
+                          "result"))) |>
       mutate(
         converged = map_lgl(gauc_list,
                             .f = function(x) {
