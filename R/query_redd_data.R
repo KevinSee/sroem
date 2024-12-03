@@ -44,9 +44,20 @@ query_redd_data <- function(
     as.list() |>
     rlang::set_names() |>
     purrr::map(.f = purrr::quietly(function(x) {
-      readxl::read_excel(data_file,
-                         sheet = x) |>
+      res <-
+        readxl::read_excel(data_file,
+                           sheet = x) |>
         janitor::clean_names()
+      if("river" %in% names(res)) {
+        res <-
+          res |>
+          dplyr::mutate(
+            dplyr::across(river,
+                          ~ dplyr::case_match(.,
+                                              "Methow" ~ "Lower Methow",
+                                       .default = .)))
+      }
+      return(res)
     })) |>
     purrr::map("result")
 
@@ -223,7 +234,7 @@ query_redd_data <- function(
     #               reach,
     #               survey_date,
     #               usgs_site_code) |>
-    # slice(1:15) |>
+    # dplyr::slice(1:15) |>
     dplyr::mutate(disch_data = purrr::map2(usgs_site_code,
                                            survey_date,
                                            function(x, y) {
@@ -234,6 +245,7 @@ query_redd_data <- function(
                                                                                startDate = as.character(lubridate::ymd(y)),
                                                                                endDate = as.character(lubridate::ymd(y)),
                                                                                statCd = "00003") |>  # mean
+                                                       suppressMessages() |>
                                                        dplyr::rename(mean_discharge = X_00060_00003) |>
                                                        # dplyr::select(-c(agency_cd:Date, X_00060_00003_cd))
                                                        dplyr::select(mean_discharge)
@@ -276,7 +288,7 @@ query_redd_data <- function(
                                              return(z)
                                            },
                                            .progress = T)) |>
-    unnest(disch_data)
+    tidyr::unnest(disch_data)
 
   # adjust discharge for W10: Plain - Chiwawa discharge
   if("W10" %in% unique(redd_df$reach)) {
