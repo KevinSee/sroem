@@ -21,7 +21,6 @@
 #' @importFrom DescTools BinomCI
 #' @importFrom msm deltamethod
 #' @return either saves an .Rdata object with output for a given year, or loads those results into global environment.
-#' @export
 
 prep_wen_sthd_data <- function(
     redd_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Redd Data",
@@ -105,7 +104,7 @@ prep_wen_sthd_data <- function(
       rename(final_node = spawn_node)
   }
 
-  wen_tags_all <-
+  basin_tags_all <-
     all_tags |>
     dplyr::filter(stringr::str_detect(path, "LWE")) |>
     dplyr::mutate(location = dplyr::case_when(final_node %in% c("TUM", "UWE") ~ "Above Tumwater",
@@ -130,7 +129,7 @@ prep_wen_sthd_data <- function(
 
   #-------------------------------------------------------
   # generate fish / redd and pHOS for different areas
-  fpr_all = wen_tags_all |>
+  fpr_all = basin_tags_all |>
     dplyr::mutate(across(c(sex),
                          ~ dplyr::case_match(.,
                                              "Male" ~ "M",
@@ -396,7 +395,7 @@ prep_wen_sthd_data <- function(
     }
 
   } else {
-    message("Removal data not found.\n")
+    warning("Removal data not found.\n")
     removal_df <- NULL
   }
 
@@ -479,7 +478,7 @@ prep_wen_sthd_data <- function(
     dplyr::arrange(location, origin)
 
   # pull out mainstem escapement estimates
-  # escp_wen_all = all_escp |>
+  # escp_est_all = all_escp |>
   #   dplyr::filter(location %in% c('LWE',
   #                                 'LWE_bb',
   #                                 'TUM_bb',
@@ -509,7 +508,7 @@ prep_wen_sthd_data <- function(
   #     .groups = "drop")
 
 
-  escp_wen_all <-
+  escp_est_all <-
     dabom_df |>
     dplyr::mutate(post = purrr::map2(spawn_year,
                                      dam_nm,
@@ -565,7 +564,7 @@ prep_wen_sthd_data <- function(
   # use escapement estimates rather than tags to estimate pHOS
   if(phos_data == "escapement") {
     escp_phos <-
-      escp_wen_all |>
+      escp_est_all |>
       dplyr::bind_rows(trib_spawners_all |>
                          dplyr::rename(estimate = spawners,
                                        se = spawners_se)) |>
@@ -625,7 +624,7 @@ prep_wen_sthd_data <- function(
         redd_df <- NULL
       }
 
-      wen_tags <- wen_tags_all |>
+      basin_tags <- basin_tags_all |>
         dplyr::filter(spawn_year == yr)
 
       sex_err <- sex_err_rate |>
@@ -637,7 +636,7 @@ prep_wen_sthd_data <- function(
       trib_spawners <- trib_spawners_all |>
         dplyr::filter(spawn_year == yr)
 
-      escp_wen <- escp_wen_all |>
+      escp_est <- escp_est_all |>
         dplyr::filter(spawn_year == yr)
 
       rem_df <- removal_df |>
@@ -650,11 +649,11 @@ prep_wen_sthd_data <- function(
       }
 
       save(redd_df,
-           wen_tags,
+           basin_tags,
            sex_err,
            fpr_df,
            trib_spawners,
-           escp_wen,
+           escp_est,
            rem_df,
            file = paste(save_file_path,
                         file_nm,
@@ -670,7 +669,7 @@ prep_wen_sthd_data <- function(
       redd_df <- NULL
     }
 
-    wen_tags <- wen_tags_all
+    basin_tags <- basin_tags_all
 
     sex_err <- sex_err_rate
 
@@ -678,7 +677,7 @@ prep_wen_sthd_data <- function(
 
     trib_spawners <- trib_spawners_all
 
-    escp_wen <- escp_wen_all
+    escp_est <- escp_est_all
 
     rem_df <- removal_df
 
@@ -698,11 +697,11 @@ prep_wen_sthd_data <- function(
         }
       }
       save(redd_df,
-           wen_tags,
+           basin_tags,
            sex_err,
            fpr_df,
            trib_spawners,
-           escp_wen,
+           escp_est,
            rem_df,
            file = paste(save_file_path,
                         save_file_name,
@@ -712,11 +711,11 @@ prep_wen_sthd_data <- function(
       tmp_file <- tempfile(fileext = ".rda")
 
       save(redd_df,
-           wen_tags,
+           basin_tags,
            sex_err,
            fpr_df,
            trib_spawners,
-           escp_wen,
+           escp_est,
            rem_df,
            file = tmp_file)
 
