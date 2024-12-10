@@ -117,7 +117,7 @@ prep_uc_sthd_data <- function(
                                       "PriestRapids",
                                       "RockIsland"))
 
-  # get info on tags detected somewhere in the Methow
+  # get info on tags detected somewhere in the basin
   all_tags <- dabom_df |>
     dplyr::mutate(tag_summ = purrr::map2(spawn_year,
                                          dam_nm,
@@ -193,6 +193,7 @@ prep_uc_sthd_data <- function(
                     ad_clip,
                     cwt) |>
       # differentiate different tags in hatchery fish
+      # this rule set came from Charlie Snow for the Methow
       dplyr::mutate(mark_grp = dplyr::case_when(origin == "W" ~ "W",
                                                 ad_clip & !cwt ~ "HOR-SN",
                                                 cwt ~ "HOR-C",
@@ -482,7 +483,7 @@ prep_uc_sthd_data <- function(
                                           removal_file_name,
                                           sep = "/")) |>
         janitor::clean_names() |>
-        dplyr::filter(subbasin == "Wenatchee",
+        dplyr::filter(subbasin == basin,
                       spawn_year %in% query_year)
     }
     if(stringr::str_detect(removal_file_name, "xls$") |
@@ -546,7 +547,7 @@ prep_uc_sthd_data <- function(
           )
         ) |>
         dplyr::filter(spawn_year %in% query_year,
-                      population == "Methow")
+                      population == basin)
     }
 
   } else {
