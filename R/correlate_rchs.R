@@ -8,6 +8,7 @@
 #' @param date_nm quoted name of column in {redd_df} listing date of each survey
 #' @param cor_redd_nm quoted name of column in {redd_df} listing number of redds found during that survey, to be used in the correlation
 #' @param reach_nm quoted name of column in {redd_df} listing name of reach
+#' @param make_na_zero should NAs in the correlation matrix be set to 0? Default is `TRUE`
 #'
 #' @import dplyr corrr lubridate
 #' @return dataframe
@@ -18,6 +19,7 @@ correlate_rchs <- function(redd_df = NULL,
                            cor_redd_nm = "NewRedds",
                            reach_nm = "Reach",
                            use = "pairwise.complete.obs",
+                           make_na_zero = TRUE,
                            ...) {
   if (is.null(redd_df)) {
     stop("redd data must be supplied")
@@ -74,6 +76,10 @@ correlate_rchs <- function(redd_df = NULL,
         use = use,
         ...
       )
+  }
+
+  if(make_na_zero) {
+    cor_mat[is.na(cor_mat)] <- 0
   }
 
   return(cor_mat)

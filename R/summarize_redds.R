@@ -133,11 +133,11 @@ summarize_redds <- function(redd_df = NULL,
             deltamethod(as.formula(paste("~", paste0("x", 1:nrow(x), collapse = "+"))),
               mean = x$redd_est,
               cov = diag(
-                x = x$redd_se,
+                x = x$redd_se^2,
                 nrow = nrow(y)
               ) %*% y %*%
                 diag(
-                  x = x$redd_se,
+                  x = x$redd_se^2,
                   nrow = nrow(y)
                 )
             ),
