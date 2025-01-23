@@ -15,11 +15,11 @@
 #' @export
 
 query_redd_data <- function(
-  redd_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Redd Data",
-  redd_file_name = "Wenatchee_Redd_Surveys.xlsx",
-  experience_path = NULL,
-  experience_file_name = NULL,
-  query_year = lubridate::year(lubridate::today()) - 1) {
+    redd_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Redd Data",
+    redd_file_name = "Wenatchee_Redd_Surveys.xlsx",
+    experience_path = NULL,
+    experience_file_name = NULL,
+    query_year = lubridate::year(lubridate::today()) - 1) {
 
   data_file = paste(redd_file_path,
                     redd_file_name,
@@ -29,6 +29,16 @@ query_redd_data <- function(
     # stop("File not found.")
     warning("Redd data file not found.")
     return(NULL)
+  }
+
+  for(pkg in c("readxl",
+               "forcats",
+               "dataRetrieval")) {
+    if(!rlang::is_installed(pkg)) {
+      stop(paste("The package",
+                 pkg,
+                 "is required for this function."))
+    }
   }
 
   if(is.null(experience_path)) {
@@ -55,7 +65,7 @@ query_redd_data <- function(
             dplyr::across(river,
                           ~ dplyr::case_match(.,
                                               "Methow" ~ "Lower Methow",
-                                       .default = .)))
+                                              .default = .)))
       }
       return(res)
     })) |>
@@ -86,10 +96,10 @@ query_redd_data <- function(
 
     # get experience data
     exp_df <- readxl::read_excel(paste(experience_path,
-                                                        experience_file_name,
-                                                        sep = "/"),
-                                                  sheet = "Experience",
-                                                  skip = 1) |>
+                                       experience_file_name,
+                                       sep = "/"),
+                                 sheet = "Experience",
+                                 skip = 1) |>
       suppressMessages() |>
       dplyr::rename(basin = `...1`,
                     agency = `...2`,
@@ -104,29 +114,29 @@ query_redd_data <- function(
           as.numeric
         )
       )
-  # } else if(stringr::str_detect(redd_file_name, "Methow")) {
-  #   # get experience data
-  #   exp_df <- readxl::read_excel(paste(experience_path,
-  #                                      experience_file_name,
-  #                                      sep = "/"),
-  #                                sheet = "Experience",
-  #                                skip = 1) |>
-  #     suppressMessages() |>
-  #     dplyr::rename(basin = `...1`,
-  #                   agency = `...2`,
-  #                   surveyor_name = `...3`,
-  #                   surveyor_initials = `...4`,
-  #                   notes = `...14`) |>
-  #     dplyr::select(-notes) |>
-  #     tidyr::pivot_longer(-c(basin:surveyor_initials),
-  #                         names_to = "spawn_year",
-  #                         values_to = "experience") |>
-  #     dplyr::mutate(
-  #       dplyr::across(
-  #         spawn_year,
-  #         as.numeric
-  #       )
-  #     )
+    # } else if(stringr::str_detect(redd_file_name, "Methow")) {
+    #   # get experience data
+    #   exp_df <- readxl::read_excel(paste(experience_path,
+    #                                      experience_file_name,
+    #                                      sep = "/"),
+    #                                sheet = "Experience",
+    #                                skip = 1) |>
+    #     suppressMessages() |>
+    #     dplyr::rename(basin = `...1`,
+    #                   agency = `...2`,
+    #                   surveyor_name = `...3`,
+    #                   surveyor_initials = `...4`,
+    #                   notes = `...14`) |>
+    #     dplyr::select(-notes) |>
+    #     tidyr::pivot_longer(-c(basin:surveyor_initials),
+    #                         names_to = "spawn_year",
+    #                         values_to = "experience") |>
+    #     dplyr::mutate(
+    #       dplyr::across(
+    #         spawn_year,
+    #         as.numeric
+    #       )
+    #     )
   } else if(stringr::str_detect(redd_file_name, "Entiat")) {
     # get experience data
     exp_df <- suppressMessages(readxl::read_excel(paste(experience_path,
@@ -155,32 +165,32 @@ query_redd_data <- function(
                      experience = NA_real_)
   }
 
-    redd_surv_df <- redd_surv_df |>
-      dplyr::mutate(
-        dplyr::across(
-          c(surveyor1,
-            surveyor2),
-          ~ stringr::str_remove(.,
-                                "\\ \\([:alpha:]+\\)"))) |>
-      dplyr::left_join(exp_df |>
-                         dplyr::select(spawn_year,
-                                       surveyor1 = surveyor_initials,
-                                       exp1 = experience),
-                       by = c("spawn_year", "surveyor1")) |>
-      dplyr::left_join(exp_df |>
-                         dplyr::select(spawn_year,
-                                       surveyor2 = surveyor_initials,
-                                       exp2 = experience),
-                       by = c("spawn_year", "surveyor2")) |>
-      dplyr::rowwise() |>
-      dplyr::mutate(exp_sp_total = mean(c(exp1, exp2), na.rm = T)) |>
-      dplyr::ungroup()
+  redd_surv_df <- redd_surv_df |>
+    dplyr::mutate(
+      dplyr::across(
+        c(surveyor1,
+          surveyor2),
+        ~ stringr::str_remove(.,
+                              "\\ \\([:alpha:]+\\)"))) |>
+    dplyr::left_join(exp_df |>
+                       dplyr::select(spawn_year,
+                                     surveyor1 = surveyor_initials,
+                                     exp1 = experience),
+                     by = c("spawn_year", "surveyor1")) |>
+    dplyr::left_join(exp_df |>
+                       dplyr::select(spawn_year,
+                                     surveyor2 = surveyor_initials,
+                                     exp2 = experience),
+                     by = c("spawn_year", "surveyor2")) |>
+    dplyr::rowwise() |>
+    dplyr::mutate(exp_sp_total = mean(c(exp1, exp2), na.rm = T)) |>
+    dplyr::ungroup()
 
   redd_df <- redd_surv_df |>
     dplyr::left_join(data_list$`Reach Length` |>
                        dplyr::group_by(river,
-                                     reach,
-                                     type, index) |>
+                                       reach,
+                                       type, index) |>
                        dplyr::summarize(
                          dplyr::across(length_km,
                                        ~ sum(.)),
@@ -372,9 +382,9 @@ query_redd_data <- function(
     miss_disch <-
       roar_crk_disch |>
       filter(date %in% c(discharge_df |>
-               dplyr::filter(river == "Entiat",
-                             reach == "B") |>
-               pull(survey_date)),
+                           dplyr::filter(river == "Entiat",
+                                         reach == "B") |>
+                           pull(survey_date)),
              is.na(rc_discharge)) |>
       add_column(prev_disch = NA_real_,
                  next_disch = NA_real_)
@@ -416,8 +426,8 @@ query_redd_data <- function(
       dplyr::filter(river == "Entiat",
                     reach == "B") |>
       dplyr::left_join(roar_crk_disch,
-                by = dplyr::join_by(spawn_year,
-                             survey_date == date)) |>
+                       by = dplyr::join_by(spawn_year,
+                                           survey_date == date)) |>
       dplyr::mutate(
         dplyr::across(mean_discharge,
                       ~ . - rc_discharge)) |>

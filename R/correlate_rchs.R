@@ -10,7 +10,7 @@
 #' @param reach_nm quoted name of column in {redd_df} listing name of reach
 #' @param make_na_zero should NAs in the correlation matrix be set to 0? Default is `TRUE`
 #'
-#' @import dplyr corrr lubridate
+#' @import dplyr lubridate
 #' @return dataframe
 #' @export
 
