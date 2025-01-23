@@ -27,18 +27,22 @@ fit_gauc <- function(data = NULL,
 
   model_fam <- match.arg(model_fam)
 
-  g_pois <- glm(redds ~ day + I(day^2),
-    data = data,
-    family = quasipoisson
-  )
+  g_pois <-
+    glm(
+      redds ~ day + I(day^2),
+      data = data,
+      family = quasipoisson
+    )
 
   if (model_fam == "quasipoisson") g <- g_pois
 
   if (model_fam == "negative.binomial") {
-    g <- glm(redds ~ day + I(day^2),
-      data = data,
-      family = negative.binomial(round(summary(g.pois)$dispersion))
-    )
+    g <-
+      glm(
+        redds ~ day + I(day^2),
+        data = data,
+        family = negative.binomial(round(summary(g.pois)$dispersion))
+      )
   }
 
   x <- coef(g)

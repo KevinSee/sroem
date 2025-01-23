@@ -31,17 +31,19 @@ query_dabom_results <- function(
       "detect_summ",
       "parent_child"
     )) {
-  dabom_dam_nm <- match.arg(dabom_dam_nm)
+  dabom_dam_nm <-
+    match.arg(dabom_dam_nm)
 
-  data_file <- paste0(
-    dabom_file_path,
-    "/",
-    dabom_dam_nm,
-    "/",
-    dabom_file_name,
-    query_year,
-    ".rda"
-  )
+  data_file <-
+    paste0(
+      dabom_file_path,
+      "/",
+      dabom_dam_nm,
+      "/",
+      dabom_file_name,
+      query_year,
+      ".rda"
+    )
 
   if (!file.exists(data_file)) {
     stop("File not found.")
