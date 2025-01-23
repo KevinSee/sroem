@@ -45,7 +45,7 @@ correlate_rchs <- function(redd_df = NULL,
       pull({{ date_nm }}) #|>
     #   class()
     # if (date_class == "Date") {
-    if(inherits(date_class, "Date")) {
+    if (inherits(date_class, "Date")) {
       redd_df <- redd_df |>
         mutate(across(
           {{ date_nm }},
@@ -78,7 +78,7 @@ correlate_rchs <- function(redd_df = NULL,
       )
   }
 
-  if(make_na_zero) {
+  if (make_na_zero) {
     cor_mat[is.na(cor_mat)] <- 0
   }
 

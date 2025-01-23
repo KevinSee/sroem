@@ -15,52 +15,55 @@
 #' @export
 
 query_dabom_results <- function(
-  dabom_file_path = "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
-  dabom_dam_nm = c("RockIsland",
-                   "PriestRapids"),
-  dabom_file_name = "UC_Sthd_DABOM_",
-  query_year = lubridate::year(lubridate::today()) - 1,
-  result_type = c("escape_summ",
-                  "tag_summ",
-                  "escape_post",
-                  "dam_summ",
-                  "total_escape",
-                  "detect_summ",
-                  "parent_child")) {
+    dabom_file_path = "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
+    dabom_dam_nm = c(
+      "RockIsland",
+      "PriestRapids"
+    ),
+    dabom_file_name = "UC_Sthd_DABOM_",
+    query_year = lubridate::year(lubridate::today()) - 1,
+    result_type = c(
+      "escape_summ",
+      "tag_summ",
+      "escape_post",
+      "dam_summ",
+      "total_escape",
+      "detect_summ",
+      "parent_child"
+    )) {
+  dabom_dam_nm <- match.arg(dabom_dam_nm)
 
-  dabom_dam_nm = match.arg(dabom_dam_nm)
+  data_file <- paste0(
+    dabom_file_path,
+    "/",
+    dabom_dam_nm,
+    "/",
+    dabom_file_name,
+    query_year,
+    ".rda"
+  )
 
-  data_file = paste0(dabom_file_path,
-                     "/",
-                     dabom_dam_nm,
-                     "/",
-                     dabom_file_name,
-                     query_year,
-                     ".rda")
-
-  if(!file.exists(data_file)) {
+  if (!file.exists(data_file)) {
     stop("File not found.")
   }
 
-  result_type = match.arg(result_type)
+  result_type <- match.arg(result_type)
 
   load(data_file)
 
-  if(result_type == "escape_summ") {
+  if (result_type == "escape_summ") {
     return(escape_summ)
-  } else if(result_type == "tag_summ") {
+  } else if (result_type == "tag_summ") {
     return(tag_summ)
-  } else if(result_type == "escape_post") {
+  } else if (result_type == "escape_post") {
     return(escape_post)
-  } else if(result_type == "dam_summ") {
+  } else if (result_type == "dam_summ") {
     return(dam_escp_df)
-  } else if(result_type == "total_escape") {
+  } else if (result_type == "total_escape") {
     return(org_escape)
-  } else if(result_type == "detect_summ") {
+  } else if (result_type == "detect_summ") {
     return(detect_summ)
-  } else if(result_type == "parent_child") {
+  } else if (result_type == "parent_child") {
     return(parent_child)
   }
-
-
 }
