@@ -17,7 +17,8 @@
 #' @param add_zeros should leading and trailing zero counts be added if the first and last counts aren't already zero? Default is {FALSE}.
 #'
 #'
-#' @import dplyr msm
+#' @import dplyr purrr
+#' @importFrom msm deltamethod
 #' @return dataframe
 #' @export
 
@@ -37,28 +38,28 @@ estimate_redds <- function(redd_df = NULL,
     stop("Redd data must be supplied")
   }
 
-  species = match.arg(species)
+  species <- match.arg(species)
 
 
   # by default, use GAUC for steelhead, not for Spring Chinook
-  if(is.null(gauc)) {
-    if(species == "Steelhead") {
-      gauc = T
+  if (is.null(gauc)) {
+    if (species == "Steelhead") {
+      gauc <- T
     }
-    if(species == "Spring Chinook") {
-      gauc = F
+    if (species == "Spring Chinook") {
+      gauc <- F
     }
   }
 
   redd_results <- redd_df %>%
-    select(all_of({{ group_vars }}),
-           new_redds = {{ new_redd_nm }},
-           vis_redds = {{ vis_redd_nm }},
-           net_err = {{ net_err_nm }},
-           net_se = {{ net_se_nm }}
+    dplyr::select(all_of({{ group_vars }}),
+      new_redds = {{ new_redd_nm }},
+      vis_redds = {{ vis_redd_nm }},
+      net_err = {{ net_err_nm }},
+      net_se = {{ net_se_nm }}
     ) %>%
-    group_by(across({{ group_vars }})) %>%
-    summarise(
+    dplyr::group_by(across({{ group_vars }})) %>%
+    dplyr::summarise(
       n_weeks = n(),
       n_non0_wks = sum(new_redds > 0, na.rm = T),
       tot_feat = sum(new_redds, na.rm = T),
@@ -66,147 +67,169 @@ estimate_redds <- function(redd_df = NULL,
       err_se = mean(net_se[vis_redds > 0], na.rm = T),
       .groups = "drop"
     ) %>%
-    mutate(
-      err_se = if_else(is.na(err_est), 0, err_se),
-      err_est = if_else(is.na(err_est), 0, err_est)
+    dplyr::mutate(
+      err_se = dplyr::if_else(is.na(err_est), 0, err_se),
+      err_est = dplyr::if_else(is.na(err_est), 0, err_est)
     ) %>%
-    full_join(
+    dplyr::full_join(
       redd_df %>%
-        group_by(across({{ group_vars }})) %>%
-        nest(),
+        dplyr::group_by(across({{ group_vars }})) %>%
+        tidyr::nest(),
       by = {{ group_vars }}
     )
 
-  if(gauc) {
+  if (gauc) {
     redd_results <- redd_results |>
-      mutate(gauc_list = map(data,
-                             .f = safely(function(x, ...) {
-                               mod_df <- x %>%
-                                 select(redds = {{ new_redd_nm }}) %>%
-                                 mutate(day = 1:n())
+      dplyr::mutate(gauc_list = purrr::map(data,
+        .f = safely(function(x, ...) {
+          mod_df <- x %>%
+            dplyr::select(redds = {{ new_redd_nm }}) %>%
+            dplyr::mutate(day = 1:n())
 
-                               if (add_zeros) {
-                                 if (mod_df$redds[mod_df$day == min(mod_df$day)] != 0) {
-                                   mod_df <- mod_df %>%
-                                     bind_rows(tibble(
-                                       redds = 0,
-                                       day = min(mod_df$day) - 1
-                                     )) %>%
-                                     arrange(day) %>%
-                                     mutate(day = 1:n())
-                                 }
-                                 if (mod_df$redds[mod_df$day == max(mod_df$day)] != 0) {
-                                   mod_df <- mod_df %>%
-                                     bind_rows(tibble(
-                                       redds = 0,
-                                       day = max(mod_df$day) + 1
-                                     )) %>%
-                                     arrange(day)
-                                 }
-                               }
+          if (add_zeros) {
+            if (mod_df$redds[mod_df$day == min(mod_df$day)] != 0) {
+              mod_df <- mod_df %>%
+                dplyr::bind_rows(
+                  dplyr::tibble(
+                    redds = 0,
+                    day = min(mod_df$day) - 1
+                  )
+                ) %>%
+                dplyr::arrange(day) %>%
+                dplyr::mutate(day = 1:n())
+            }
+            if (mod_df$redds[mod_df$day == max(mod_df$day)] != 0) {
+              mod_df <- mod_df %>%
+                dplyr::bind_rows(
+                  dplyr::tibble(
+                    redds = 0,
+                    day = max(mod_df$day) + 1
+                  )
+                ) %>%
+                dplyr::arrange(day)
+            }
+          }
 
-                               v_vec <- x %>%
-                                 rename(
-                                   vis_redds = {{ vis_redd_nm }},
-                                   net_err = {{ net_err_nm }},
-                                   net_se = {{ net_se_nm }}
-                                 ) %>%
-                                 filter(vis_redds > 0) %>%
-                                 summarize(
-                                   across(c(net_err,
-                                            net_se),
-                                          ~ mean(.x, na.rm = T))
-                                 ) %>%
-                                 mutate(
-                                   net_se = if_else(is.na(net_err),
-                                                    0,
-                                                    net_se
-                                   ),
-                                   net_err = if_else(is.na(net_err),
-                                                     0,
-                                                     net_err
-                                   )
-                                 )
+          v_vec <- x %>%
+            dplyr::rename(
+              vis_redds = {{ vis_redd_nm }},
+              net_err = {{ net_err_nm }},
+              net_se = {{ net_se_nm }}
+            ) %>%
+            dplyr::filter(vis_redds > 0) %>%
+            dplyr::summarize(
+              dplyr::across(
+                c(
+                  net_err,
+                  net_se
+                ),
+                ~ mean(.x, na.rm = T)
+              )
+            ) %>%
+            dplyr::mutate(
+              net_se = dplyr::if_else(is.na(net_err),
+                0,
+                net_se
+              ),
+              net_err = dplyr::if_else(is.na(net_err),
+                0,
+                net_err
+              )
+            )
 
-                               # # if you want to assume no observer error
-                               # v_vec = tibble(net_err = 1,
-                               #                net_se = 0)
+          # # if you want to assume no observer error
+          # v_vec = tibble(net_err = 1,
+          #                net_se = 0)
 
-                               res_list <- fit_gauc(
-                                 data = mod_df,
-                                 v = v_vec$net_err,
-                                 v_se = v_vec$net_se,
-                                 ...
-                               )
+          res_list <- fit_gauc(
+            data = mod_df,
+            v = v_vec$net_err,
+            v_se = v_vec$net_se,
+            ...
+          )
 
-                               res_list <- c(
-                                 as.list(res_list),
-                                 list("mod_data" = mod_df)
-                               )
+          res_list <- c(
+            as.list(res_list),
+            list("mod_data" = mod_df)
+          )
 
-                               return(res_list)
-                             })
+          return(res_list)
+        })
       )) %>%
-      mutate(any_error = map(gauc_list,
-                             "error"),
-             across(gauc_list,
-                    ~ map(.,
-                          "result"))) |>
-      mutate(
-        converged = map_lgl(gauc_list,
-                            .f = function(x) {
-                              x$model$converged
-                            }
-        )) %>%
-      mutate(
-        correct_curve = map_lgl(gauc_list,
-                                .f = function(x) {
-                                  x$beta[1] < 0 &
-                                    x$beta[2] > 0 &
-                                    x$beta[3] < 0
-                                }
-        )) %>%
-      mutate(
-        redd_est = map_dbl(gauc_list,
-                           .f = "E"
+      dplyr::mutate(
+        any_error = map(
+          gauc_list,
+          "error"
         ),
-        redd_se = map_dbl(gauc_list,
-                          .f = "E_se"
+        dplyr::across(
+          gauc_list,
+          ~ purrr::map(
+            .,
+            "result"
+          )
+        )
+      ) |>
+      dplyr::mutate(
+        converged = purrr::map_lgl(gauc_list,
+          .f = function(x) {
+            x$model$converged
+          }
         )
       ) %>%
-      mutate(GAUC = if_else(!converged | n_non0_wks < min_non0_wks | tot_feat < min_redds | !correct_curve,
-                            F, T
-      )) %>%
-      rowwise() %>%
-      mutate(
-        redd_est = if_else(!GAUC,
-                           tot_feat / (err_est + 1),
-                           redd_est
-        ),
-        redd_se = if_else(!GAUC,
-                          msm::deltamethod(~ x1 / x2,
-                                           mean = c(tot_feat, err_est + 1),
-                                           cov = diag(c(0, err_se)^2)
-                          ),
-                          redd_se
+      dplyr::mutate(
+        correct_curve = purrr::map_lgl(gauc_list,
+          .f = function(x) {
+            x$beta[1] < 0 &
+              x$beta[2] > 0 &
+              x$beta[3] < 0
+          }
         )
       ) %>%
-      ungroup()
+      dplyr::mutate(
+        redd_est = purrr::map_dbl(gauc_list,
+          .f = "E"
+        ),
+        redd_se = purrr::map_dbl(gauc_list,
+          .f = "E_se"
+        )
+      ) %>%
+      dplyr::mutate(GAUC = dplyr::if_else(!converged |
+        n_non0_wks < min_non0_wks |
+        tot_feat < min_redds |
+        !correct_curve,
+      F, T
+      )) %>%
+      dplyr::rowwise() %>%
+      dplyr::mutate(
+        redd_est = dplyr::if_else(!GAUC,
+          tot_feat / (err_est + 1),
+          redd_est
+        ),
+        redd_se = dplyr::if_else(!GAUC,
+          msm::deltamethod(~ x1 / x2,
+            mean = c(tot_feat, err_est + 1),
+            cov = diag(c(0, err_se)^2)
+          ),
+          redd_se
+        )
+      ) %>%
+      dplyr::ungroup()
   } else {
     redd_results <- redd_results |>
-      rowwise() %>%
-      mutate(
+      dplyr::rowwise() %>%
+      dplyr::mutate(
         redd_est = tot_feat / (err_est + 1),
         redd_se = msm::deltamethod(~ x1 / (x2 + 1),
-                                   mean = c(tot_feat, err_est),
-                                   cov = diag(c(0, err_se)^2)),
+          mean = c(tot_feat, err_est),
+          cov = diag(c(0, err_se)^2)
+        ),
       ) %>%
-      ungroup()
+      dplyr::ungroup()
   }
 
   redd_results <- redd_results %>%
-    mutate(
-      across(
+    dplyr::mutate(
+      dplyr::across(
         redd_est,
         round_half_up
       )

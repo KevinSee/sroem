@@ -10,7 +10,7 @@
 #' @param summ_vars vector of column names from {redd_df} to group summaries of redd results by
 #' @param use_cor should correlations between reaches be used in calculating standard errors? Default is {FALSE}
 #'
-#' @import dplyr msm tidyr purrr corrr
+#' @import dplyr msm tidyr purrr
 #' @return dataframe
 #' @export
 

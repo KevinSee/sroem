@@ -10,7 +10,7 @@
 #' @param reach_nm quoted name of column in {redd_df} listing name of reach
 #' @param make_na_zero should NAs in the correlation matrix be set to 0? Default is `TRUE`
 #'
-#' @import dplyr corrr lubridate
+#' @import dplyr lubridate tidyr
 #' @return dataframe
 #' @export
 
@@ -25,52 +25,61 @@ correlate_rchs <- function(redd_df = NULL,
     stop("redd data must be supplied")
   }
 
-  n_rchs <- redd_df |>
-    pull({{ reach_nm }}) %>%
-    n_distinct()
+  n_rchs <-
+    redd_df |>
+    dplyr::pull({{ reach_nm }}) %>%
+    dplyr::n_distinct()
 
   if (n_rchs == 1) {
-    rch_nm <- redd_df |>
-      pull({{ reach_nm }}) %>%
+    rch_nm <-
+      redd_df |>
+      dplyr::pull({{ reach_nm }}) %>%
       unique()
-    cor_mat <- matrix(1, 1, 1,
-      dimnames = list(
-        rch_nm,
-        rch_nm
+
+    cor_mat <-
+      matrix(1, 1, 1,
+        dimnames = list(
+          rch_nm,
+          rch_nm
+        )
       )
-    )
   } else {
     # check the class of survey date column
-    date_class <- redd_df |>
-      pull({{ date_nm }}) #|>
+    date_class <-
+      redd_df |>
+      dplyr::pull({{ date_nm }}) #|>
     #   class()
     # if (date_class == "Date") {
-    if(inherits(date_class, "Date")) {
-      redd_df <- redd_df |>
-        mutate(across(
+    if (inherits(date_class, "Date")) {
+      redd_df <-
+        redd_df |>
+        dplyr::mutate(across(
           {{ date_nm }},
           as.POSIXct
         ))
     }
 
-    cor_mat <- redd_df |>
-      rename(
+    cor_mat <-
+      redd_df |>
+      dplyr::rename(
         redds = {{ cor_redd_nm }},
         reach = {{ reach_nm }},
         surv_date = {{ date_nm }}
       ) |>
-      mutate(surv_period = lubridate::week(surv_date)) |>
-      group_by(reach, surv_period) %>%
-      summarize(across(redds,
-        mean,
-        na.rm = T
-      )) %>%
-      pivot_wider(
+      dplyr::mutate(surv_period = lubridate::week(surv_date)) |>
+      dplyr::group_by(reach, surv_period) %>%
+      dplyr::summarize(
+        dplyr::across(redds,
+          mean,
+          na.rm = T
+        )
+      ) %>%
+      tidyr::pivot_wider(
         names_from = reach,
         values_from = redds,
         names_sort = T
       ) |>
-      select(-surv_period) |>
+      dplyr::select(-surv_period) |>
       # corrr::correlate(...)
       stats::cor(
         use = use,
@@ -78,7 +87,7 @@ correlate_rchs <- function(redd_df = NULL,
       )
   }
 
-  if(make_na_zero) {
+  if (make_na_zero) {
     cor_mat[is.na(cor_mat)] <- 0
   }
 

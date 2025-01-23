@@ -20,23 +20,29 @@ fit_gauc <- function(data = NULL,
                      v = 1,
                      v_se = 0,
                      model_fam = c("quasipoisson", "negative.binomial")) {
-
-  stopifnot(!is.null(data),
-            sum(c("redds", "day") %in% names(data)) == 2)
+  stopifnot(
+    !is.null(data),
+    sum(c("redds", "day") %in% names(data)) == 2
+  )
 
   model_fam <- match.arg(model_fam)
 
-  g_pois <- glm(redds ~ day + I(day^2),
-                data = data,
-                family = quasipoisson)
+  g_pois <-
+    glm(
+      redds ~ day + I(day^2),
+      data = data,
+      family = quasipoisson
+    )
 
   if (model_fam == "quasipoisson") g <- g_pois
 
   if (model_fam == "negative.binomial") {
-    g <- glm(redds ~ day + I(day^2),
-             data = data,
-             family = negative.binomial(round(summary(g.pois)$dispersion))
-    )
+    g <-
+      glm(
+        redds ~ day + I(day^2),
+        data = data,
+        family = negative.binomial(round(summary(g.pois)$dispersion))
+      )
   }
 
   x <- coef(g)
@@ -49,14 +55,14 @@ fit_gauc <- function(data = NULL,
   # check that vcov is correct dim
   if (sum(dim(vcov(g)) == c(3, 3)) == 2) {
     F_se <- msm::deltamethod(~ sqrt(-pi / x3) * exp(x1 - x2^2 / (4 * x3)),
-                             mean = x,
-                             cov = vcov(g)
+      mean = x,
+      cov = vcov(g)
     )
 
     # Include uncertainty in redd-days, stream-life and observer efficiency
     E_se <- msm::deltamethod(~ x1 / (x2 * (x3 + 1)),
-                             mean = c(Fg, SL, v),
-                             cov = diag(c(F_se, SL_se, v_se))^2
+      mean = c(Fg, SL, v),
+      cov = diag(c(F_se, SL_se, v_se))^2
     )
   } else {
     E_se <- NA
@@ -80,5 +86,6 @@ fit_gauc <- function(data = NULL,
       beta = x,
       Ncurve = params,
       model = g
-    ))
+    )
+  )
 }

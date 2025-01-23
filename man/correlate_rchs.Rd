@@ -10,6 +10,7 @@ correlate_rchs(
   cor_redd_nm = "NewRedds",
   reach_nm = "Reach",
   use = "pairwise.complete.obs",
+  make_na_zero = TRUE,
   ...
 )
 }
@@ -21,6 +22,8 @@ correlate_rchs(
 \item{cor_redd_nm}{quoted name of column in {redd_df} listing number of redds found during that survey, to be used in the correlation}
 
 \item{reach_nm}{quoted name of column in {redd_df} listing name of reach}
+
+\item{make_na_zero}{should NAs in the correlation matrix be set to 0? Default is \code{TRUE}}
 }
 \value{
 dataframe

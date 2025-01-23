@@ -17,4 +17,15 @@ LazyData: true
 Imports: 
     broom,
     dplyr,
+    janitor,
+    lubridate,
+    msm,
+    purrr,
+    rlang,
+    stringr,
+    tibble,
     tidyr
+Suggests: 
+    dataRetrieval,
+    forcats,
+    readxl
