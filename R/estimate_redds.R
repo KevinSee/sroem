@@ -38,16 +38,16 @@ estimate_redds <- function(redd_df = NULL,
     stop("Redd data must be supplied")
   }
 
-  species = match.arg(species)
+  species <- match.arg(species)
 
 
   # by default, use GAUC for steelhead, not for Spring Chinook
-  if(is.null(gauc)) {
-    if(species == "Steelhead") {
-      gauc = T
+  if (is.null(gauc)) {
+    if (species == "Steelhead") {
+      gauc <- T
     }
-    if(species == "Spring Chinook") {
-      gauc = F
+    if (species == "Spring Chinook") {
+      gauc <- F
     }
   }
 
@@ -78,7 +78,7 @@ estimate_redds <- function(redd_df = NULL,
       by = {{ group_vars }}
     )
 
-  if(gauc) {
+  if (gauc) {
     redd_results <- redd_results |>
       dplyr::mutate(gauc_list = purrr::map(data,
                                            .f = safely(function(x, ...) {
@@ -93,7 +93,8 @@ estimate_redds <- function(redd_df = NULL,
                                                      dplyr::tibble(
                                                        redds = 0,
                                                        day = min(mod_df$day) - 1
-                                                     )) %>%
+                                                     )
+                                                   ) %>%
                                                    dplyr::arrange(day) %>%
                                                    dplyr::mutate(day = 1:n())
                                                }
@@ -103,7 +104,8 @@ estimate_redds <- function(redd_df = NULL,
                                                      dplyr::tibble(
                                                        redds = 0,
                                                        day = max(mod_df$day) + 1
-                                                     )) %>%
+                                                     )
+                                                   ) %>%
                                                    dplyr::arrange(day)
                                                }
                                              }
@@ -116,9 +118,13 @@ estimate_redds <- function(redd_df = NULL,
                                                ) %>%
                                                dplyr::filter(vis_redds > 0) %>%
                                                dplyr::summarize(
-                                                 dplyr::across(c(net_err,
-                                                                 net_se),
-                                                               ~ mean(.x, na.rm = T))
+                                                 dplyr::across(
+                                                   c(
+                                                     net_err,
+                                                     net_se
+                                                   ),
+                                                   ~ mean(.x, na.rm = T)
+                                                 )
                                                ) %>%
                                                dplyr::mutate(
                                                  net_se = dplyr::if_else(is.na(net_err),
@@ -150,17 +156,26 @@ estimate_redds <- function(redd_df = NULL,
                                              return(res_list)
                                            })
       )) %>%
-      dplyr::mutate(any_error = map(gauc_list,
-                                    "error"),
-                    dplyr::across(gauc_list,
-                                  ~ purrr::map(.,
-                                               "result"))) |>
+      dplyr::mutate(
+        any_error = map(
+          gauc_list,
+          "error"
+        ),
+        dplyr::across(
+          gauc_list,
+          ~ purrr::map(
+            .,
+            "result"
+          )
+        )
+      ) |>
       dplyr::mutate(
         converged = purrr::map_lgl(gauc_list,
                                    .f = function(x) {
                                      x$model$converged
                                    }
-        )) %>%
+        )
+      ) %>%
       dplyr::mutate(
         correct_curve = purrr::map_lgl(gauc_list,
                                        .f = function(x) {
@@ -168,7 +183,8 @@ estimate_redds <- function(redd_df = NULL,
                                            x$beta[2] > 0 &
                                            x$beta[3] < 0
                                        }
-        )) %>%
+        )
+      ) %>%
       dplyr::mutate(
         redd_est = purrr::map_dbl(gauc_list,
                                   .f = "E"
@@ -205,7 +221,8 @@ estimate_redds <- function(redd_df = NULL,
         redd_est = tot_feat / (err_est + 1),
         redd_se = msm::deltamethod(~ x1 / (x2 + 1),
                                    mean = c(tot_feat, err_est),
-                                   cov = diag(c(0, err_se)^2)),
+                                   cov = diag(c(0, err_se)^2)
+        ),
       ) %>%
       dplyr::ungroup()
   }
