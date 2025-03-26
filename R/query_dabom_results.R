@@ -31,8 +31,11 @@ query_dabom_results <- function(
       "detect_summ",
       "parent_child"
     )) {
-  dabom_dam_nm <-
-    match.arg(dabom_dam_nm)
+
+  if(!is.null(dabom_dam_nm)) {
+    dabom_dam_nm <-
+      match.arg(dabom_dam_nm)
+  }
 
   data_file <-
     paste0(
