@@ -20,10 +20,14 @@ query_redd_data <- function(
     experience_path = NULL,
     experience_file_name = NULL,
     query_year = lubridate::year(lubridate::today()) - 1) {
-  data_file <- paste(redd_file_path,
-    redd_file_name,
-    sep = "/"
-  )
+
+
+  data_file <-
+    paste(
+      redd_file_path,
+      redd_file_name,
+      sep = "/"
+    )
 
   if (!file.exists(data_file)) {
     # stop("File not found.")
@@ -54,7 +58,8 @@ query_redd_data <- function(
   }
 
   # compile all data
-  data_list <- readxl::excel_sheets(data_file) |>
+  data_list <-
+    readxl::excel_sheets(data_file) |>
     as.list() |>
     rlang::set_names() |>
     purrr::map(.f = purrr::quietly(function(x) {
@@ -100,6 +105,35 @@ query_redd_data <- function(
         ),
         as.numeric
       )
+    )
+
+  # clean up some notation
+  redd_surv_df <-
+    redd_surv_df |>
+    dplyr::mutate(
+      dplyr::across(surveyor1,
+                    ~ dplyr::case_when(is.na(.) &
+                                  !is.na(surveyors) &
+                                  !stringr::str_detect(surveyors, "\\,") ~ surveyors,
+                                is.na(.) &
+                                  !is.na(surveyors) &
+                                  stringr::str_detect(surveyors, "\\,") ~ stringr::str_split_i(surveyors, "\\,", 1),
+                                .default = .)),
+      dplyr::across(surveyor2,
+                    ~ dplyr::case_when(is.na(.) &
+                                         !is.na(surveyors) &
+                                         !stringr::str_detect(surveyors, "\\,") ~ NA_character_,
+                                       is.na(.) &
+                                         !is.na(surveyors) &
+                                         stringr::str_detect(surveyors, "\\,") ~ stringr::str_split_i(surveyors, "\\,", 2),
+                                       .default = .)),
+      dplyr::across(c(surveyor1,
+                      surveyor2),
+                    ~ case_when(stringr::str_detect(., "\\(") ~ stringr::str_split_i(., "\\(", 1),
+                                .default = .)),
+      dplyr::across(c(surveyor1,
+                      surveyor2),
+                    stringr::str_trim)
     )
 
 
