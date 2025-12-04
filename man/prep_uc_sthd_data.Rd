@@ -23,6 +23,7 @@ prep_uc_sthd_data(
   n_observers = "two",
   query_year = lubridate::year(lubridate::today()) - 1,
   phos_data = c("escapement", "tags"),
+  adjust_fpr = T,
   save_rda = F,
   save_by_year = T,
   save_file_path = here::here("analysis/data/derived_data"),
@@ -55,6 +56,8 @@ prep_uc_sthd_data(
 \item{query_year}{which year or years should be included in this query?}
 
 \item{phos_data}{should the data used to estimate pHOS come from PIT \code{tags} or \code{escapement} estimates? Default is \code{escapement}.}
+
+\item{adjust_fpr}{should sex data from broodstock collections be used to assess error rate of sex calls at Priest, and then adjust fish / redd values based on those error rates. Default value is \code{TRUE}.}
 
 \item{save_rda}{should the data that's returned by saved as an .RData object (\code{TRUE})? Default value of \code{FALSE} loads all the returned objects into the Global Environment.}
 
