@@ -636,6 +636,9 @@ prep_uc_sthd_data <- function(
     fpr_all <- adj_fpr
 
     rm(adj_fpr)
+  } else {
+    sex_err_rate <-
+      tibble(spawn_yr = query_year)
   }
 
   #-----------------------------------------------------------------
