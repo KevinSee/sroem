@@ -58,6 +58,17 @@ summarize_redds(
 \item{cor_redd_nm}{quoted name of column in {redd_df} listing number of redds found during that survey, to be used in the correlation}
 
 \item{reach_nm}{quoted name of column in {redd_df} listing name of reach}
+
+\item{use}{an optional character string giving a
+    method for computing covariances in the presence
+    of missing values.  This must be (an abbreviation of) one of the strings
+    \code{"everything"}, \code{"all.obs"}, \code{"complete.obs"},
+    \code{"na.or.complete"}, or \code{"pairwise.complete.obs"}.}
+
+\item{method}{a character string indicating which correlation
+    coefficient (or covariance) is to be computed.  One of
+    \code{"pearson"} (default), \code{"kendall"}, or \code{"spearman"}:
+    can be abbreviated.}
 }
 \value{
 dataframe

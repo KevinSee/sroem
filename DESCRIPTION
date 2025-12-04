@@ -24,7 +24,8 @@ Imports:
     rlang,
     stringr,
     tibble,
-    tidyr
+    tidyr,
+    corrr
 Suggests: 
     dataRetrieval,
     forcats,
