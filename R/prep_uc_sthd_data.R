@@ -74,10 +74,10 @@ prep_uc_sthd_data <- function(
 
   # load data for selected years
   redd_df_all <- query_redd_data(redd_file_path,
-    redd_file_name,
-    experience_path,
-    experience_file_name,
-    query_year = query_year
+                                 redd_file_name,
+                                 experience_path,
+                                 experience_file_name,
+                                 query_year = query_year
   )
 
   if (!is.null(redd_df_all)) {
@@ -86,17 +86,17 @@ prep_uc_sthd_data <- function(
       redd_df_all <-
         redd_df_all |>
         dplyr::mutate(location = dplyr::case_when(reach %in% paste0("W", 8:10) ~ "Above Tumwater",
-          reach %in% paste0("W", 1:7) ~ "Below Tumwater",
-          .default = "Tributaries"
+                                                  reach %in% paste0("W", 1:7) ~ "Below Tumwater",
+                                                  .default = "Tributaries"
         ))
     } else if (basin == "Methow") {
       redd_df_all <-
         redd_df_all |>
         dplyr::mutate(location = dplyr::case_when(reach == "T1" ~ "Twisp",
-          # reach == "MH1" ~ "Methow Fish Hatchery",
-          reach == "MH1" ~ "Spring Creek",
-          reach == "WN1" ~ "Spring Creek",
-          .default = "Lower Methow"
+                                                  # reach == "MH1" ~ "Methow Fish Hatchery",
+                                                  reach == "MH1" ~ "Spring Creek",
+                                                  reach == "WN1" ~ "Spring Creek",
+                                                  .default = "Lower Methow"
         ))
     } else if (basin == "Entiat") {
       redd_df_all <-
@@ -126,25 +126,25 @@ prep_uc_sthd_data <- function(
   dabom_df <- dplyr::tibble(
     spawn_year = query_year,
     dam_nm = dplyr::if_else(spawn_year %in% c(2011:2015, 2018),
-      "PriestRapids",
-      "RockIsland"
+                            "PriestRapids",
+                            "RockIsland"
     )
   )
 
   # get info on tags detected somewhere in the basin
   all_tags <- dabom_df |>
     dplyr::mutate(tag_summ = purrr::map2(spawn_year,
-      dam_nm,
-      .f = function(yr, dam_nm) {
-        sroem::query_dabom_results(
-          dabom_file_path = dabom_file_path,
-          dabom_dam_nm = dam_nm,
-          dabom_file_name = dabom_file_name,
-          query_year = yr,
-          result_type = "tag_summ"
-        ) |>
-          dplyr::select(-dplyr::any_of("spawn_year"))
-      }
+                                         dam_nm,
+                                         .f = function(yr, dam_nm) {
+                                           sroem::query_dabom_results(
+                                             dabom_file_path = dabom_file_path,
+                                             dabom_dam_nm = dam_nm,
+                                             dabom_file_name = dabom_file_name,
+                                             query_year = yr,
+                                             result_type = "tag_summ"
+                                           ) |>
+                                             dplyr::select(-dplyr::any_of("spawn_year"))
+                                         }
     )) |>
     dplyr::select(-dam_nm) |>
     tidyr::unnest(tag_summ)
@@ -156,17 +156,17 @@ prep_uc_sthd_data <- function(
   }
 
   if (!"cwt" %in% names(all_tags) |
-    !"ad_clip" %in% names(all_tags)) {
+      !"ad_clip" %in% names(all_tags)) {
     all_tags <-
       all_tags |>
       dplyr::mutate(
         cwt = dplyr::if_else(stringr::str_detect(conditional_comments, "CP") |
-          stringr::str_detect(conditional_comments, "CW"),
-        T, F
+                               stringr::str_detect(conditional_comments, "CW"),
+                             T, F
         ),
         ad_clip = dplyr::case_when(stringr::str_detect(conditional_comments, "AD") ~ T,
-          stringr::str_detect(conditional_comments, "AI") ~ F,
-          .default = NA
+                                   stringr::str_detect(conditional_comments, "AI") ~ F,
+                                   .default = NA
         )
       )
   }
@@ -175,8 +175,8 @@ prep_uc_sthd_data <- function(
     all_tags <-
       all_tags |>
       dplyr::mutate(sex = dplyr::case_when(stringr::str_detect(conditional_comments, "MA") ~ "M",
-        stringr::str_detect(conditional_comments, "FE") ~ "F",
-        .default = NA_character_
+                                           stringr::str_detect(conditional_comments, "FE") ~ "F",
+                                           .default = NA_character_
       ))
   }
 
@@ -201,17 +201,17 @@ prep_uc_sthd_data <- function(
         dplyr::across(
           location,
           ~ factor(.,
-            levels = c(
-              "Lower Methow",
-              "Upper Methow",
-              "Chewuch",
-              "Twisp",
-              "Methow Fish Hatchery",
-              "Spring Creek",
-              "Beaver",
-              "Gold",
-              "Libby"
-            )
+                   levels = c(
+                     "Lower Methow",
+                     "Upper Methow",
+                     "Chewuch",
+                     "Twisp",
+                     "Methow Fish Hatchery",
+                     "Spring Creek",
+                     "Beaver",
+                     "Gold",
+                     "Libby"
+                   )
           )
         )
       ) |>
@@ -227,20 +227,20 @@ prep_uc_sthd_data <- function(
       # differentiate different tags in hatchery fish
       # this rule set came from Charlie Snow for the Methow
       dplyr::mutate(mark_grp = dplyr::case_when(origin == "W" ~ "W",
-        ad_clip & !cwt ~ "HOR-SN",
-        cwt ~ "HOR-C",
-        origin == "H" & (!cwt | !ad_clip) ~ "HOR-C",
-        .default = NA_character_
+                                                ad_clip & !cwt ~ "HOR-SN",
+                                                cwt ~ "HOR-C",
+                                                origin == "H" & (!cwt | !ad_clip) ~ "HOR-C",
+                                                .default = NA_character_
       )) |>
       dplyr::mutate(
         dplyr::across(
           mark_grp,
           ~ factor(.,
-            levels = c(
-              "W",
-              "HOR-SN",
-              "HOR-C"
-            )
+                   levels = c(
+                     "W",
+                     "HOR-SN",
+                     "HOR-C"
+                   )
           )
         )
       )
@@ -252,23 +252,23 @@ prep_uc_sthd_data <- function(
       dplyr::filter(stringr::str_detect(path, "LWE")) |>
       dplyr::mutate(
         location = dplyr::case_when(final_node %in% c("TUM", "UWE") ~ "Above Tumwater",
-          stringr::str_detect(final_node, "^LWE") ~ "Below Tumwater",
-          stringr::str_detect(path, "CHL") ~ "Chiwawa",
-          stringr::str_detect(path, "NAL") ~ "Nason",
-          stringr::str_detect(path, "PES") ~ "Peshastin",
-          .default = "Other Tributaries"
+                                    stringr::str_detect(final_node, "^LWE") ~ "Below Tumwater",
+                                    stringr::str_detect(path, "CHL") ~ "Chiwawa",
+                                    stringr::str_detect(path, "NAL") ~ "Nason",
+                                    stringr::str_detect(path, "PES") ~ "Peshastin",
+                                    .default = "Other Tributaries"
         ),
         dplyr::across(
           location,
           ~ factor(.,
-            levels = c(
-              "Below Tumwater",
-              "Above Tumwater",
-              "Peshastin",
-              "Nason",
-              "Chiwawa",
-              "Other Tributaries"
-            )
+                   levels = c(
+                     "Below Tumwater",
+                     "Above Tumwater",
+                     "Peshastin",
+                     "Nason",
+                     "Chiwawa",
+                     "Other Tributaries"
+                   )
           )
         )
       ) |>
@@ -284,21 +284,21 @@ prep_uc_sthd_data <- function(
       # differentiate different tags in hatchery fish
       # this rule set came from Katy Shelby for the Wenatchee
       dplyr::mutate(mark_grp = dplyr::case_when(origin == "W" ~ "W",
-        ad_clip ~ "HOR-SN",
-        origin == "H" & !ad_clip ~ "HOR-C",
-        # ad_clip & !cwt ~ "HOR-SN",
-        # cwt ~ "HOR-C",
-        .default = NA_character_
+                                                ad_clip ~ "HOR-SN",
+                                                origin == "H" & !ad_clip ~ "HOR-C",
+                                                # ad_clip & !cwt ~ "HOR-SN",
+                                                # cwt ~ "HOR-C",
+                                                .default = NA_character_
       )) |>
       dplyr::mutate(
         dplyr::across(
           mark_grp,
           ~ factor(.,
-            levels = c(
-              "W",
-              "HOR-SN",
-              "HOR-C"
-            )
+                   levels = c(
+                     "W",
+                     "HOR-SN",
+                     "HOR-C"
+                   )
           )
         )
       )
@@ -325,8 +325,8 @@ prep_uc_sthd_data <- function(
       dplyr::across(
         c(sex),
         ~ dplyr::recode(.,
-          "Male" = "M",
-          "Female" = "F"
+                        "Male" = "M",
+                        "Female" = "F"
         )
       )
     ) |>
@@ -352,8 +352,8 @@ prep_uc_sthd_data <- function(
     ) |>
     dplyr::rowwise() |>
     dplyr::mutate(fpr_se = msm::deltamethod(~ x1 / (1 - x1) + 1,
-      mean = prop_m,
-      cov = prop_se^2
+                                            mean = prop_m,
+                                            cov = prop_se^2
     )) |>
     dplyr::ungroup() |>
     dplyr::mutate(
@@ -644,13 +644,13 @@ prep_uc_sthd_data <- function(
   #-----------------------------------------------------------------
   # read in data about known removals of fish prior to spawning
   if (file.exists(paste(removal_file_path,
-    removal_file_name,
-    sep = "/"
+                        removal_file_name,
+                        sep = "/"
   ))) {
     if (stringr::str_detect(removal_file_name, "csv$")) {
       removal_df <- readr::read_csv(paste(removal_file_path,
-        removal_file_name,
-        sep = "/"
+                                          removal_file_name,
+                                          sep = "/"
       )) |>
         janitor::clean_names() |>
         dplyr::filter(
@@ -659,11 +659,11 @@ prep_uc_sthd_data <- function(
         )
     }
     if (stringr::str_detect(removal_file_name, "xls$") |
-      stringr::str_detect(removal_file_name, "xlsx$")) {
+        stringr::str_detect(removal_file_name, "xlsx$")) {
       removal_df <- readxl::read_excel(
         paste(removal_file_path,
-          removal_file_name,
-          sep = "/"
+              removal_file_name,
+              sep = "/"
         ),
         skip = 3,
         col_names = c(
@@ -707,7 +707,7 @@ prep_uc_sthd_data <- function(
         ) |>
         dplyr::mutate(origin = stringr::str_sub(source, -1)) |>
         dplyr::relocate(origin,
-          .before = "removed"
+                        .before = "removed"
         ) |>
         dplyr::filter(origin %in% c("h", "w")) |>
         dplyr::mutate(
@@ -732,8 +732,8 @@ prep_uc_sthd_data <- function(
           dplyr::across(
             origin,
             ~ dplyr::recode(.,
-              "h" = "Hatchery",
-              "w" = "Natural"
+                            "h" = "Hatchery",
+                            "w" = "Natural"
             )
           )
         ) |>
@@ -797,11 +797,11 @@ prep_uc_sthd_data <- function(
   # non-tributary locations
   main_locs <-
     all_locs[all_locs %in%
-      union(
-        all_locs[stringr::str_detect(all_locs, "_bb$")],
-        all_locs[stringr::str_detect(all_locs, "_bb$")] |>
-          stringr::str_remove("_bb$")
-      )]
+               union(
+                 all_locs[stringr::str_detect(all_locs, "_bb$")],
+                 all_locs[stringr::str_detect(all_locs, "_bb$")] |>
+                   stringr::str_remove("_bb$")
+               )]
 
   # tributary locations
   trib_locs <-
@@ -809,16 +809,16 @@ prep_uc_sthd_data <- function(
 
   all_escp <- dabom_df |>
     dplyr::mutate(escp = purrr::map2(spawn_year,
-      dam_nm,
-      .f = function(yr, dam_nm) {
-        sroem::query_dabom_results(
-          dabom_file_path = dabom_file_path,
-          dabom_dam_nm = dam_nm,
-          dabom_file_name = dabom_file_name,
-          query_year = yr,
-          result_type = "escape_summ"
-        )
-      }
+                                     dam_nm,
+                                     .f = function(yr, dam_nm) {
+                                       sroem::query_dabom_results(
+                                         dabom_file_path = dabom_file_path,
+                                         dabom_dam_nm = dam_nm,
+                                         dabom_file_name = dabom_file_name,
+                                         query_year = yr,
+                                         result_type = "escape_summ"
+                                       )
+                                     }
     )) |>
     dplyr::select(-c(
       spawn_year,
@@ -827,24 +827,24 @@ prep_uc_sthd_data <- function(
     tidyr::unnest(escp) |>
     dplyr::filter(location %in% all_locs) |>
     dplyr::select(spawn_year,
-      origin,
-      location,
-      estimate = median,
-      se = sd,
-      lci = lower_ci,
-      uci = upper_ci
+                  origin,
+                  location,
+                  estimate = median,
+                  se = sd,
+                  lci = lower_ci,
+                  uci = upper_ci
     )
 
   # pull out estimates of tributary spawners from DABOM
   trib_spawners_all <- all_escp |>
     dplyr::filter(location %in% trib_locs) |>
     dplyr::select(spawn_year,
-      origin,
-      location,
-      spawners = estimate,
-      spawners_se = se,
-      lci,
-      uci
+                  origin,
+                  location,
+                  spawners = estimate,
+                  spawners_se = se,
+                  lci,
+                  uci
     ) |>
     dplyr::mutate(
       dplyr::across(
@@ -911,16 +911,16 @@ prep_uc_sthd_data <- function(
   escp_est_all <-
     dabom_df |>
     dplyr::mutate(post = purrr::map2(spawn_year,
-      dam_nm,
-      .f = function(yr, dam_nm) {
-        sroem::query_dabom_results(
-          dabom_file_path = dabom_file_path,
-          dabom_dam_nm = dam_nm,
-          dabom_file_name = dabom_file_name,
-          query_year = yr,
-          result_type = "escape_post"
-        )
-      }
+                                     dam_nm,
+                                     .f = function(yr, dam_nm) {
+                                       sroem::query_dabom_results(
+                                         dabom_file_path = dabom_file_path,
+                                         dabom_dam_nm = dam_nm,
+                                         dabom_file_name = dabom_file_name,
+                                         query_year = yr,
+                                         result_type = "escape_post"
+                                       )
+                                     }
     )) |>
     dplyr::select(-dam_nm) |>
     tidyr::unnest(post) |>
@@ -984,10 +984,10 @@ prep_uc_sthd_data <- function(
     escp_phos <-
       escp_est_all |>
       dplyr::bind_rows(trib_spawners_all |>
-        dplyr::rename(
-          estimate = spawners,
-          se = spawners_se
-        )) |>
+                         dplyr::rename(
+                           estimate = spawners,
+                           se = spawners_se
+                         )) |>
       dplyr::select(
         spawn_year,
         location,
@@ -1003,14 +1003,14 @@ prep_uc_sthd_data <- function(
       dplyr::mutate(
         phos = estimate_Hatchery / (estimate_Hatchery + estimate_Natural),
         phos_se = msm::deltamethod(~ x1 / (x1 + x2),
-          mean = c(
-            estimate_Hatchery,
-            estimate_Natural
-          ),
-          cov = diag(c(
-            se_Hatchery,
-            se_Natural
-          )^2)
+                                   mean = c(
+                                     estimate_Hatchery,
+                                     estimate_Natural
+                                   ),
+                                   cov = diag(c(
+                                     se_Hatchery,
+                                     se_Natural
+                                   )^2)
         )
       ) |>
       dplyr::ungroup()
@@ -1020,9 +1020,9 @@ prep_uc_sthd_data <- function(
       dplyr::left_join(
         escp_phos |>
           dplyr::select(spawn_year,
-            location,
-            phos2 = phos,
-            phos_se2 = phos_se
+                        location,
+                        phos2 = phos,
+                        phos_se2 = phos_se
           ),
         by = dplyr::join_by(spawn_year, location)
       ) |>
@@ -1030,15 +1030,15 @@ prep_uc_sthd_data <- function(
         dplyr::across(
           phos,
           ~ dplyr::if_else(!is.na(phos2),
-            phos2,
-            .
+                           phos2,
+                           .
           )
         ),
         dplyr::across(
           phos_se,
           ~ dplyr::if_else(!is.na(phos_se2),
-            phos_se2,
-            .
+                           phos_se2,
+                           .
           )
         )
       ) |>
@@ -1092,16 +1092,16 @@ prep_uc_sthd_data <- function(
       }
 
       save(redd_df,
-        basin_tags,
-        sex_err,
-        fpr_df,
-        trib_spawners,
-        escp_est,
-        rem_df,
-        file = paste(save_file_path,
-          file_nm,
-          sep = "/"
-        )
+           basin_tags,
+           sex_err,
+           fpr_df,
+           trib_spawners,
+           escp_est,
+           rem_df,
+           file = paste(save_file_path,
+                        file_nm,
+                        sep = "/"
+           )
       )
       rm(file_nm)
     }
@@ -1131,8 +1131,8 @@ prep_uc_sthd_data <- function(
           save_file_name <- paste0(
             basin, "_",
             paste(min(query_year),
-              max(query_year),
-              sep = "-"
+                  max(query_year),
+                  sep = "-"
             ),
             ".rda"
           )
@@ -1145,32 +1145,32 @@ prep_uc_sthd_data <- function(
         }
       }
       save(redd_df,
-        basin_tags,
-        sex_err,
-        fpr_df,
-        trib_spawners,
-        escp_est,
-        rem_df,
-        file = paste(save_file_path,
-          save_file_name,
-          sep = "/"
-        )
+           basin_tags,
+           sex_err,
+           fpr_df,
+           trib_spawners,
+           escp_est,
+           rem_df,
+           file = paste(save_file_path,
+                        save_file_name,
+                        sep = "/"
+           )
       )
     } else {
       tmp_file <- tempfile(fileext = ".rda")
 
       save(redd_df,
-        basin_tags,
-        sex_err,
-        fpr_df,
-        trib_spawners,
-        escp_est,
-        rem_df,
-        file = tmp_file
+           basin_tags,
+           sex_err,
+           fpr_df,
+           trib_spawners,
+           escp_est,
+           rem_df,
+           file = tmp_file
       )
 
       load(tmp_file,
-        envir = .GlobalEnv
+           envir = .GlobalEnv
       )
 
       file.remove(tmp_file)
