@@ -125,7 +125,8 @@ prep_uc_sthd_data <- function(
 
   dabom_df <- dplyr::tibble(
     spawn_year = query_year,
-    dam_nm = dplyr::if_else(spawn_year %in% c(2011:2015, 2018),
+    dam_nm = dplyr::if_else(spawn_year %in% c(2011:2015, 2018) |
+                              spawn_year >= 2025,
                             "PriestRapids",
                             "RockIsland"
     )
@@ -400,6 +401,13 @@ prep_uc_sthd_data <- function(
           ) |>
           dplyr::distinct(),
         by = dplyr::join_by(spawn_year, tag_code)
+      ) |>
+      # update one tag, based on genetics and notes
+      dplyr::mutate(
+        dplyr::across(sex_final,
+                      ~ dplyr::case_when(spawn_year == 2025 &
+                                           tag_code == "3DD.003E0FF10A" ~ "M",
+                                         .default = .))
       ) |>
       dplyr::filter(
         !is.na(sex_final),
