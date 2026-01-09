@@ -125,8 +125,7 @@ prep_uc_sthd_data <- function(
 
   dabom_df <- dplyr::tibble(
     spawn_year = query_year,
-    dam_nm = dplyr::if_else(spawn_year %in% c(2011:2015, 2018) |
-                              spawn_year >= 2025,
+    dam_nm = dplyr::if_else(spawn_year %in% c(2011:2015, 2018),
                             "PriestRapids",
                             "RockIsland"
     )
@@ -444,137 +443,198 @@ prep_uc_sthd_data <- function(
                       .after = "perc_false"
       )
 
-    adj_fpr <- fpr_all |>
-      dplyr::select(
-        spawn_year,
-        location,
-        n_male,
-        n_female
-      ) |>
-      tidyr::pivot_longer(
-        cols = c(
-          n_male,
-          n_female
-        ),
-        names_to = "sex",
-        values_to = "n_fish"
-      ) |>
+    adj_fpr <-
+      fpr_all |>
+      dplyr::select(spawn_year:n_sexed) |>
+      dplyr::left_join(sex_err_rate |>
+                         dplyr::select(spawn_year,
+                                sex,
+                                brood_tags = n_tags,
+                                brood_false = n_false) |>
+                         tidyr::pivot_wider(names_from = "sex",
+                                            values_from = starts_with("brood")),
+                       by = dplyr::join_by(spawn_year)) |>
       dplyr::mutate(
-        dplyr::across(
-          sex,
-          ~ stringr::str_remove(
-            .,
-            "^n_"
-          )
-        ),
-        dplyr::across(
-          sex,
-          stringr::str_to_title
-        )
-      ) |>
+        boot_sim = purrr::pmap(.l = list(b_x = brood_tags_M,
+                                         b_y = brood_tags_F,
+                                         false_x = brood_false_M,
+                                         false_y = brood_false_F,
+                                         samp_x = n_male,
+                                         samp_y = n_female),
+                               .f = boot_adj_prop,
+                               seed = 4,
+                               .progress = TRUE),
+        x_y_est = purrr::map(boot_sim,
+                             .f = est_adj_prop,
+                             .progress = TRUE),
+        prop_est = purrr::map(boot_sim,
+                              .f = est_adj_prop,
+                              estimate = "prop_x",
+                              .progress = TRUE),
+        adj_male = purrr::map_dbl(boot_sim,
+                                  .f = function(x) {
+                                    median(x$x_boot)
+                                  })) |>
+      tidyr::unnest(c(x_y_est,
+                      prop_est)) |>
       dplyr::mutate(
-        dplyr::across(
-          sex,
-          ~ dplyr::recode(.,
-                          "Male" = "M",
-                          "Female" = "F"
-          )
-        )
+        dplyr::across(n_female,
+                      ~ case_when(n_male != adj_male ~ n_sexed - adj_male,
+                                  .default = .)),
+        dplyr::across(n_male,
+                      ~ case_when(n_male != adj_male ~ adj_male,
+                                  .default = .)),
+        fpr = x_y_est + 1
       ) |>
-      dplyr::left_join(
-        sex_err_rate |>
-          dplyr::select(
-            spawn_year,
-            sex,
-            dplyr::starts_with("perc_")
-          ),
-        by = c("spawn_year", "sex")
-      ) |>
-      tidyr::pivot_wider(
-        names_from = sex,
-        values_from = c(
-          n_fish,
-          perc_false,
-          perc_se
-        )
-      ) |>
-      dplyr::mutate(
-        true_male = n_fish_M - (n_fish_M * perc_false_M) + (n_fish_F * perc_false_F),
-        true_female = n_fish_F - (n_fish_F * perc_false_F) + (n_fish_M * perc_false_M),
-        dplyr::across(
-          starts_with("true"),
-          janitor::round_half_up
-        )
-      ) |>
-      dplyr::rowwise() |>
-      dplyr::mutate(
-        true_m_se = msm::deltamethod(~ x1 - (x1 * x2) + (x3 * x4),
-                                     mean = c(
-                                       n_fish_M,
-                                       perc_false_M,
-                                       n_fish_F,
-                                       perc_false_F
-                                     ),
-                                     cov = diag(c(
-                                       0,
-                                       perc_se_M,
-                                       0,
-                                       perc_se_F
-                                     )^2)
-        ),
-        true_f_se = msm::deltamethod(~ x1 - (x1 * x2) + (x3 * x4),
-                                     mean = c(
-                                       n_fish_F,
-                                       perc_false_F,
-                                       n_fish_M,
-                                       perc_false_M
-                                     ),
-                                     cov = diag(c(
-                                       0,
-                                       perc_se_F,
-                                       0,
-                                       perc_se_M
-                                     )^2)
-        )
-      ) |>
-      dplyr::mutate(
-        n_sexed = true_male + true_female,
-        prop_m = true_male / (true_male + true_female),
-        prop_se = msm::deltamethod(~ x1 / (x1 + x2),
-                                   mean = c(
-                                     true_male,
-                                     true_female
-                                   ),
-                                   cov = diag(c(
-                                     true_m_se,
-                                     true_f_se
-                                   )^2)
-        ),
-        fpr = (prop_m) / (1 - prop_m) + 1,
-        fpr_se = msm::deltamethod(~ x1 / (1 - x1) + 1,
-                                  mean = prop_m,
-                                  cov = prop_se^2
-        )
-      ) |>
-      dplyr::ungroup() |>
-      dplyr::rename(
-        n_male = true_male,
-        n_female = true_female
-      ) |>
-      dplyr::left_join(
-        fpr_all |>
-          dplyr::select(
-            spawn_year,
-            location,
-            n_wild,
-            n_hatch,
-            contains("n_hor"),
-            n_origin,
-            starts_with("phos")
-          ),
-        by = c("spawn_year", "location")
-      ) |>
+      dplyr::rename(fpr_se = x_y_se,
+                    prop_m = prop_x,
+                    prop_se = prop_x_se) |>
       dplyr::select(dplyr::any_of(names(fpr_all)))
+
+    # add other information back
+    adj_fpr <-
+      fpr_all |>
+      dplyr::select(!any_of(names(adj_fpr)),
+                    spawn_year,
+                    location) |>
+      dplyr::left_join(adj_fpr,
+                       by = dplyr::join_by(spawn_year,
+                                           location)) |>
+      dplyr::select(dplyr::all_of(names(fpr_all)))
+
+#
+#
+#     adj_fpr <- fpr_all |>
+#       dplyr::select(
+#         spawn_year,
+#         location,
+#         n_male,
+#         n_female
+#       ) |>
+#       tidyr::pivot_longer(
+#         cols = c(
+#           n_male,
+#           n_female
+#         ),
+#         names_to = "sex",
+#         values_to = "n_fish"
+#       ) |>
+#       dplyr::mutate(
+#         dplyr::across(
+#           sex,
+#           ~ stringr::str_remove(
+#             .,
+#             "^n_"
+#           )
+#         ),
+#         dplyr::across(
+#           sex,
+#           stringr::str_to_title
+#         )
+#       ) |>
+#       dplyr::mutate(
+#         dplyr::across(
+#           sex,
+#           ~ dplyr::recode(.,
+#                           "Male" = "M",
+#                           "Female" = "F"
+#           )
+#         )
+#       ) |>
+#       dplyr::left_join(
+#         sex_err_rate |>
+#           dplyr::select(
+#             spawn_year,
+#             sex,
+#             dplyr::starts_with("perc_")
+#           ),
+#         by = c("spawn_year", "sex")
+#       ) |>
+#       tidyr::pivot_wider(
+#         names_from = sex,
+#         values_from = c(
+#           n_fish,
+#           perc_false,
+#           perc_se
+#         )
+#       ) |>
+#       dplyr::mutate(
+#         true_male = n_fish_M - (n_fish_M * perc_false_M) + (n_fish_F * perc_false_F),
+#         true_female = n_fish_F - (n_fish_F * perc_false_F) + (n_fish_M * perc_false_M),
+#         dplyr::across(
+#           starts_with("true"),
+#           janitor::round_half_up
+#         )
+#       ) |>
+#       dplyr::rowwise() |>
+#       dplyr::mutate(
+#         true_m_se = msm::deltamethod(~ x1 - (x1 * x2) + (x3 * x4),
+#                                      mean = c(
+#                                        n_fish_M,
+#                                        perc_false_M,
+#                                        n_fish_F,
+#                                        perc_false_F
+#                                      ),
+#                                      cov = diag(c(
+#                                        0,
+#                                        perc_se_M,
+#                                        0,
+#                                        perc_se_F
+#                                      )^2)
+#         ),
+#         true_f_se = msm::deltamethod(~ x1 - (x1 * x2) + (x3 * x4),
+#                                      mean = c(
+#                                        n_fish_F,
+#                                        perc_false_F,
+#                                        n_fish_M,
+#                                        perc_false_M
+#                                      ),
+#                                      cov = diag(c(
+#                                        0,
+#                                        perc_se_F,
+#                                        0,
+#                                        perc_se_M
+#                                      )^2)
+#         )
+#       ) |>
+#       dplyr::mutate(
+#         n_sexed = true_male + true_female,
+#         prop_m = true_male / (true_male + true_female),
+#         prop_se = msm::deltamethod(~ x1 / (x1 + x2),
+#                                    mean = c(
+#                                      true_male,
+#                                      true_female
+#                                    ),
+#                                    cov = diag(c(
+#                                      true_m_se,
+#                                      true_f_se
+#                                    )^2)
+#         ),
+#         fpr = (prop_m) / (1 - prop_m) + 1,
+#         fpr_se = msm::deltamethod(~ x1 / (1 - x1) + 1,
+#                                   mean = prop_m,
+#                                   cov = prop_se^2
+#         )
+#       ) |>
+#       dplyr::ungroup() |>
+#       dplyr::rename(
+#         n_male = true_male,
+#         n_female = true_female
+#       ) |>
+#       dplyr::left_join(
+#         fpr_all |>
+#           dplyr::select(
+#             spawn_year,
+#             location,
+#             n_wild,
+#             n_hatch,
+#             contains("n_hor"),
+#             n_origin,
+#             starts_with("phos")
+#           ),
+#         by = c("spawn_year", "location")
+#       ) |>
+#       dplyr::select(dplyr::any_of(names(fpr_all)))
 
     # # look at changes to fish/redd
     # fpr_all |>
