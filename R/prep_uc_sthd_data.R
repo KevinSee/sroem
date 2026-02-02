@@ -12,6 +12,7 @@
 #' @param removal_file_name name of Excel file containing removal data in a very particular format
 #' @param n_observers how many observers / boats were used on each survey?
 #' @param phos_data should the data used to estimate pHOS come from PIT `tags` or `escapement` estimates? Default is `escapement`.
+#' @param adjust_fpr should sex data from broodstock collections be used to assess error rate of sex calls at Priest, and then adjust fish / redd values based on those error rates. Default value is `TRUE`.
 #' @param save_rda should the data that's returned by saved as an .RData object (`TRUE`)? Default value of `FALSE` loads all the returned objects into the Global Environment.
 #' @param save_file_path if `save_rda` is `TRUE`, where should the .RData object be saved?
 #' @param save_file_name if `save_rda` is `TRUE`, what should the file name be? Should end in ".rda".
@@ -45,6 +46,7 @@ prep_uc_sthd_data <- function(
       "escapement",
       "tags"
     ),
+    adjust_fpr = T,
     save_rda = F,
     save_by_year = T,
     save_file_path = here::here("analysis/data/derived_data"),
@@ -72,10 +74,10 @@ prep_uc_sthd_data <- function(
 
   # load data for selected years
   redd_df_all <- query_redd_data(redd_file_path,
-    redd_file_name,
-    experience_path,
-    experience_file_name,
-    query_year = query_year
+                                 redd_file_name,
+                                 experience_path,
+                                 experience_file_name,
+                                 query_year = query_year
   )
 
   if (!is.null(redd_df_all)) {
@@ -84,17 +86,17 @@ prep_uc_sthd_data <- function(
       redd_df_all <-
         redd_df_all |>
         dplyr::mutate(location = dplyr::case_when(reach %in% paste0("W", 8:10) ~ "Above Tumwater",
-          reach %in% paste0("W", 1:7) ~ "Below Tumwater",
-          .default = "Tributaries"
+                                                  reach %in% paste0("W", 1:7) ~ "Below Tumwater",
+                                                  .default = "Tributaries"
         ))
     } else if (basin == "Methow") {
       redd_df_all <-
         redd_df_all |>
         dplyr::mutate(location = dplyr::case_when(reach == "T1" ~ "Twisp",
-          # reach == "MH1" ~ "Methow Fish Hatchery",
-          reach == "MH1" ~ "Spring Creek",
-          reach == "WN1" ~ "Spring Creek",
-          .default = "Lower Methow"
+                                                  # reach == "MH1" ~ "Methow Fish Hatchery",
+                                                  reach == "MH1" ~ "Spring Creek",
+                                                  reach == "WN1" ~ "Spring Creek",
+                                                  .default = "Lower Methow"
         ))
     } else if (basin == "Entiat") {
       redd_df_all <-
@@ -124,25 +126,25 @@ prep_uc_sthd_data <- function(
   dabom_df <- dplyr::tibble(
     spawn_year = query_year,
     dam_nm = dplyr::if_else(spawn_year %in% c(2011:2015, 2018),
-      "PriestRapids",
-      "RockIsland"
+                            "PriestRapids",
+                            "RockIsland"
     )
   )
 
   # get info on tags detected somewhere in the basin
   all_tags <- dabom_df |>
     dplyr::mutate(tag_summ = purrr::map2(spawn_year,
-      dam_nm,
-      .f = function(yr, dam_nm) {
-        sroem::query_dabom_results(
-          dabom_file_path = dabom_file_path,
-          dabom_dam_nm = dam_nm,
-          dabom_file_name = dabom_file_name,
-          query_year = yr,
-          result_type = "tag_summ"
-        ) |>
-          dplyr::select(-dplyr::any_of("spawn_year"))
-      }
+                                         dam_nm,
+                                         .f = function(yr, dam_nm) {
+                                           sroem::query_dabom_results(
+                                             dabom_file_path = dabom_file_path,
+                                             dabom_dam_nm = dam_nm,
+                                             dabom_file_name = dabom_file_name,
+                                             query_year = yr,
+                                             result_type = "tag_summ"
+                                           ) |>
+                                             dplyr::select(-dplyr::any_of("spawn_year"))
+                                         }
     )) |>
     dplyr::select(-dam_nm) |>
     tidyr::unnest(tag_summ)
@@ -154,17 +156,17 @@ prep_uc_sthd_data <- function(
   }
 
   if (!"cwt" %in% names(all_tags) |
-    !"ad_clip" %in% names(all_tags)) {
+      !"ad_clip" %in% names(all_tags)) {
     all_tags <-
       all_tags |>
       dplyr::mutate(
         cwt = dplyr::if_else(stringr::str_detect(conditional_comments, "CP") |
-          stringr::str_detect(conditional_comments, "CW"),
-        T, F
+                               stringr::str_detect(conditional_comments, "CW"),
+                             T, F
         ),
         ad_clip = dplyr::case_when(stringr::str_detect(conditional_comments, "AD") ~ T,
-          stringr::str_detect(conditional_comments, "AI") ~ F,
-          .default = NA
+                                   stringr::str_detect(conditional_comments, "AI") ~ F,
+                                   .default = NA
         )
       )
   }
@@ -173,8 +175,8 @@ prep_uc_sthd_data <- function(
     all_tags <-
       all_tags |>
       dplyr::mutate(sex = dplyr::case_when(stringr::str_detect(conditional_comments, "MA") ~ "M",
-        stringr::str_detect(conditional_comments, "FE") ~ "F",
-        .default = NA_character_
+                                           stringr::str_detect(conditional_comments, "FE") ~ "F",
+                                           .default = NA_character_
       ))
   }
 
@@ -199,17 +201,17 @@ prep_uc_sthd_data <- function(
         dplyr::across(
           location,
           ~ factor(.,
-            levels = c(
-              "Lower Methow",
-              "Upper Methow",
-              "Chewuch",
-              "Twisp",
-              "Methow Fish Hatchery",
-              "Spring Creek",
-              "Beaver",
-              "Gold",
-              "Libby"
-            )
+                   levels = c(
+                     "Lower Methow",
+                     "Upper Methow",
+                     "Chewuch",
+                     "Twisp",
+                     "Methow Fish Hatchery",
+                     "Spring Creek",
+                     "Beaver",
+                     "Gold",
+                     "Libby"
+                   )
           )
         )
       ) |>
@@ -225,20 +227,20 @@ prep_uc_sthd_data <- function(
       # differentiate different tags in hatchery fish
       # this rule set came from Charlie Snow for the Methow
       dplyr::mutate(mark_grp = dplyr::case_when(origin == "W" ~ "W",
-        ad_clip & !cwt ~ "HOR-SN",
-        cwt ~ "HOR-C",
-        origin == "H" & (!cwt | !ad_clip) ~ "HOR-C",
-        .default = NA_character_
+                                                ad_clip & !cwt ~ "HOR-SN",
+                                                cwt ~ "HOR-C",
+                                                origin == "H" & (!cwt | !ad_clip) ~ "HOR-C",
+                                                .default = NA_character_
       )) |>
       dplyr::mutate(
         dplyr::across(
           mark_grp,
           ~ factor(.,
-            levels = c(
-              "W",
-              "HOR-SN",
-              "HOR-C"
-            )
+                   levels = c(
+                     "W",
+                     "HOR-SN",
+                     "HOR-C"
+                   )
           )
         )
       )
@@ -250,23 +252,23 @@ prep_uc_sthd_data <- function(
       dplyr::filter(stringr::str_detect(path, "LWE")) |>
       dplyr::mutate(
         location = dplyr::case_when(final_node %in% c("TUM", "UWE") ~ "Above Tumwater",
-          stringr::str_detect(final_node, "^LWE") ~ "Below Tumwater",
-          stringr::str_detect(path, "CHL") ~ "Chiwawa",
-          stringr::str_detect(path, "NAL") ~ "Nason",
-          stringr::str_detect(path, "PES") ~ "Peshastin",
-          .default = "Other Tributaries"
+                                    stringr::str_detect(final_node, "^LWE") ~ "Below Tumwater",
+                                    stringr::str_detect(path, "CHL") ~ "Chiwawa",
+                                    stringr::str_detect(path, "NAL") ~ "Nason",
+                                    stringr::str_detect(path, "PES") ~ "Peshastin",
+                                    .default = "Other Tributaries"
         ),
         dplyr::across(
           location,
           ~ factor(.,
-            levels = c(
-              "Below Tumwater",
-              "Above Tumwater",
-              "Peshastin",
-              "Nason",
-              "Chiwawa",
-              "Other Tributaries"
-            )
+                   levels = c(
+                     "Below Tumwater",
+                     "Above Tumwater",
+                     "Peshastin",
+                     "Nason",
+                     "Chiwawa",
+                     "Other Tributaries"
+                   )
           )
         )
       ) |>
@@ -282,21 +284,21 @@ prep_uc_sthd_data <- function(
       # differentiate different tags in hatchery fish
       # this rule set came from Katy Shelby for the Wenatchee
       dplyr::mutate(mark_grp = dplyr::case_when(origin == "W" ~ "W",
-        ad_clip ~ "HOR-SN",
-        origin == "H" & !ad_clip ~ "HOR-C",
-        # ad_clip & !cwt ~ "HOR-SN",
-        # cwt ~ "HOR-C",
-        .default = NA_character_
+                                                ad_clip ~ "HOR-SN",
+                                                origin == "H" & !ad_clip ~ "HOR-C",
+                                                # ad_clip & !cwt ~ "HOR-SN",
+                                                # cwt ~ "HOR-C",
+                                                .default = NA_character_
       )) |>
       dplyr::mutate(
         dplyr::across(
           mark_grp,
           ~ factor(.,
-            levels = c(
-              "W",
-              "HOR-SN",
-              "HOR-C"
-            )
+                   levels = c(
+                     "W",
+                     "HOR-SN",
+                     "HOR-C"
+                   )
           )
         )
       )
@@ -323,8 +325,8 @@ prep_uc_sthd_data <- function(
       dplyr::across(
         c(sex),
         ~ dplyr::recode(.,
-          "Male" = "M",
-          "Female" = "F"
+                        "Male" = "M",
+                        "Female" = "F"
         )
       )
     ) |>
@@ -350,8 +352,8 @@ prep_uc_sthd_data <- function(
     ) |>
     dplyr::rowwise() |>
     dplyr::mutate(fpr_se = msm::deltamethod(~ x1 / (1 - x1) + 1,
-      mean = prop_m,
-      cov = prop_se^2
+                                            mean = prop_m,
+                                            cov = prop_se^2
     )) |>
     dplyr::ungroup() |>
     dplyr::mutate(
@@ -359,291 +361,364 @@ prep_uc_sthd_data <- function(
       phos_se = sqrt((phos * (1 - phos)) / (n_origin))
     )
 
-  message("\t Adjusting fish/redd.\n")
+  if(adjust_fpr) {
+    message("\t Adjusting fish/redd.\n")
 
-  # adjust fish / redd for errors in Priest sex calls
-  # the excel file contains rounded numbers, so re-calculate
-  # various statistics for use in analyses
-  # estimate error rate for each sex
-  sex_err_rate <-
-    all_tags |>
-    dplyr::mutate(
-      dplyr::across(
-        c(sex),
-        ~ dplyr::recode(.,
-          "Male" = "M",
-          "Female" = "F"
-        )
-      )
-    ) |>
-    dplyr::select(spawn_year,
-      tag_code,
-      sex_field = sex
-    ) |>
-    dplyr::inner_join(
-      readxl::read_excel(
-        paste(brood_file_path,
-          brood_file_name,
-          sep = "/"
-        ),
-        sheet = "Brood Collected_PIT Tagged Only"
-      ) |>
-        janitor::clean_names() |>
-        dplyr::rename(tag_code = recaptured_pit) |>
-        dplyr::select(
-          spawn_year,
-          tag_code,
-          sex_final
-        ) |>
-        dplyr::distinct(),
-      by = dplyr::join_by(spawn_year, tag_code)
-    ) |>
-    dplyr::filter(
-      !is.na(sex_final),
-      !is.na(sex_field)
-    ) |>
-    dplyr::mutate(agree = dplyr::if_else(sex_field == sex_final,
-      T, F
-    )) |>
-    dplyr::group_by(spawn_year,
-      sex = sex_field
-    ) |>
-    dplyr::summarize(
-      n_tags = dplyr::n_distinct(tag_code),
-      n_true = sum(agree),
-      n_false = sum(!agree),
-      .groups = "drop"
-    ) |>
-    dplyr::mutate(binom_ci = purrr::map2(n_false,
-      n_tags,
-      .f = function(x, y) {
-        DescTools::BinomCI(x, y) |>
-          dplyr::as_tibble()
-      }
-    )) |>
-    tidyr::unnest(binom_ci) |>
-    janitor::clean_names() |>
-    dplyr::rename(
-      perc_false = est,
-      lowerci = lwr_ci,
-      upperci = upr_ci
-    ) |>
-    dplyr::mutate(perc_se = sqrt((perc_false * (1 - perc_false)) / n_tags)) |>
-    dplyr::relocate(perc_se,
-      .after = "perc_false"
-    )
-
-  adj_fpr <- fpr_all |>
-    dplyr::select(
-      spawn_year,
-      location,
-      n_male,
-      n_female
-    ) |>
-    tidyr::pivot_longer(
-      cols = c(
-        n_male,
-        n_female
-      ),
-      names_to = "sex",
-      values_to = "n_fish"
-    ) |>
-    dplyr::mutate(
-      dplyr::across(
-        sex,
-        ~ stringr::str_remove(
-          .,
-          "^n_"
-        )
-      ),
-      dplyr::across(
-        sex,
-        stringr::str_to_title
-      )
-    ) |>
-    dplyr::mutate(
-      dplyr::across(
-        sex,
-        ~ dplyr::recode(.,
-          "Male" = "M",
-          "Female" = "F"
-        )
-      )
-    ) |>
-    dplyr::left_join(
-      sex_err_rate |>
-        dplyr::select(
-          spawn_year,
-          sex,
-          dplyr::starts_with("perc_")
-        ),
-      by = c("spawn_year", "sex")
-    ) |>
-    tidyr::pivot_wider(
-      names_from = sex,
-      values_from = c(
-        n_fish,
-        perc_false,
-        perc_se
-      )
-    ) |>
-    dplyr::mutate(
-      true_male = n_fish_M - (n_fish_M * perc_false_M) + (n_fish_F * perc_false_F),
-      true_female = n_fish_F - (n_fish_F * perc_false_F) + (n_fish_M * perc_false_M),
-      dplyr::across(
-        starts_with("true"),
-        janitor::round_half_up
-      )
-    ) |>
-    dplyr::rowwise() |>
-    dplyr::mutate(
-      true_m_se = msm::deltamethod(~ x1 - (x1 * x2) + (x3 * x4),
-        mean = c(
-          n_fish_M,
-          perc_false_M,
-          n_fish_F,
-          perc_false_F
-        ),
-        cov = diag(c(
-          0,
-          perc_se_M,
-          0,
-          perc_se_F
-        )^2)
-      ),
-      true_f_se = msm::deltamethod(~ x1 - (x1 * x2) + (x3 * x4),
-        mean = c(
-          n_fish_F,
-          perc_false_F,
-          n_fish_M,
-          perc_false_M
-        ),
-        cov = diag(c(
-          0,
-          perc_se_F,
-          0,
-          perc_se_M
-        )^2)
-      )
-    ) |>
-    dplyr::mutate(
-      n_sexed = true_male + true_female,
-      prop_m = true_male / (true_male + true_female),
-      prop_se = msm::deltamethod(~ x1 / (x1 + x2),
-        mean = c(
-          true_male,
-          true_female
-        ),
-        cov = diag(c(
-          true_m_se,
-          true_f_se
-        )^2)
-      ),
-      fpr = (prop_m) / (1 - prop_m) + 1,
-      fpr_se = msm::deltamethod(~ x1 / (1 - x1) + 1,
-        mean = prop_m,
-        cov = prop_se^2
-      )
-    ) |>
-    dplyr::ungroup() |>
-    dplyr::rename(
-      n_male = true_male,
-      n_female = true_female
-    ) |>
-    dplyr::left_join(
-      fpr_all |>
-        dplyr::select(
-          spawn_year,
-          location,
-          n_wild,
-          n_hatch,
-          contains("n_hor"),
-          n_origin,
-          starts_with("phos")
-        ),
-      by = c("spawn_year", "location")
-    ) |>
-    dplyr::select(dplyr::any_of(names(fpr_all)))
-
-  # # look at changes to fish/redd
-  # fpr_all |>
-  #   select(spawn_year,
-  #          location,
-  #          old_fpr = fpr) |>
-  #   left_join(adj_fpr |>
-  #               select(spawn_year,
-  #                      location,
-  #                      adj_fpr = fpr))
-
-  # if any fpr values are Inf, use the older ones
-  if (sum(adj_fpr$fpr == Inf) > 0) {
-    adj_fpr <- adj_fpr |>
-      dplyr::left_join(fpr_all |>
-        dplyr::select(location,
-          old_fpr = fpr,
-          old_se = fpr_se
-        )) |>
+    # adjust fish / redd for errors in Priest sex calls
+    # the excel file contains rounded numbers, so re-calculate
+    # various statistics for use in analyses
+    # estimate error rate for each sex
+    sex_err_rate <-
+      all_tags |>
       dplyr::mutate(
-        fpr = dplyr::if_else(is.na(fpr) | fpr == Inf,
-          old_fpr,
-          fpr
-        ),
-        fpr_se = dplyr::if_else(is.na(fpr_se) | fpr_se == Inf,
-          old_se,
-          fpr_se
+        dplyr::across(
+          c(sex),
+          ~ dplyr::recode(.,
+                          "Male" = "M",
+                          "Female" = "F"
+          )
         )
       ) |>
-      dplyr::select(-dplyr::starts_with("old"))
-  }
-
-  # if any values are 1 (i.e. no males) use a weighted average
-  if (sum(adj_fpr$fpr == 1) > 0) {
-    avg_fpr <-
-      adj_fpr |>
-      filter(n_male > 0) |>
-      summarize(across(
-        c(
-          fpr,
-          fpr_se
-        ),
-        ~ weighted.mean(.,
-          w = n_sexed
-        )
-      ))
+      dplyr::select(spawn_year,
+                    tag_code,
+                    sex_field = sex
+      ) |>
+      dplyr::inner_join(
+        readxl::read_excel(
+          paste(brood_file_path,
+                brood_file_name,
+                sep = "/"
+          ),
+          sheet = "Brood Collected_PIT Tagged Only"
+        ) |>
+          janitor::clean_names() |>
+          dplyr::rename(tag_code = recaptured_pit) |>
+          dplyr::select(
+            spawn_year,
+            tag_code,
+            sex_final
+          ) |>
+          dplyr::distinct(),
+        by = dplyr::join_by(spawn_year, tag_code)
+      ) |>
+      # update one tag, based on genetics and notes
+      dplyr::mutate(
+        dplyr::across(sex_final,
+                      ~ dplyr::case_when(spawn_year == 2025 &
+                                           tag_code == "3DD.003E0FF10A" ~ "M",
+                                         .default = .))
+      ) |>
+      dplyr::filter(
+        !is.na(sex_final),
+        !is.na(sex_field)
+      ) |>
+      dplyr::mutate(agree = dplyr::if_else(sex_field == sex_final,
+                                           T, F
+      )) |>
+      dplyr::group_by(spawn_year,
+                      sex = sex_field
+      ) |>
+      dplyr::summarize(
+        n_tags = dplyr::n_distinct(tag_code),
+        n_true = sum(agree),
+        n_false = sum(!agree),
+        .groups = "drop"
+      ) |>
+      dplyr::mutate(binom_ci = purrr::map2(n_false,
+                                           n_tags,
+                                           .f = function(x, y) {
+                                             DescTools::BinomCI(x, y) |>
+                                               dplyr::as_tibble()
+                                           }
+      )) |>
+      tidyr::unnest(binom_ci) |>
+      janitor::clean_names() |>
+      dplyr::rename(
+        perc_false = est,
+        lowerci = lwr_ci,
+        upperci = upr_ci
+      ) |>
+      dplyr::mutate(perc_se = sqrt((perc_false * (1 - perc_false)) / n_tags)) |>
+      dplyr::relocate(perc_se,
+                      .after = "perc_false"
+      )
 
     adj_fpr <-
-      adj_fpr |>
-      mutate(
-        across(
-          fpr,
-          ~ case_when(n_male == 0 | fpr == 1 ~ avg_fpr$fpr,
-            .default = .
+      fpr_all |>
+      dplyr::select(spawn_year:n_sexed) |>
+      dplyr::left_join(sex_err_rate |>
+                         dplyr::select(spawn_year,
+                                sex,
+                                brood_tags = n_tags,
+                                brood_false = n_false) |>
+                         tidyr::pivot_wider(names_from = "sex",
+                                            values_from = starts_with("brood")),
+                       by = dplyr::join_by(spawn_year)) |>
+      dplyr::mutate(
+        boot_sim = purrr::pmap(.l = list(b_x = brood_tags_M,
+                                         b_y = brood_tags_F,
+                                         false_x = brood_false_M,
+                                         false_y = brood_false_F,
+                                         samp_x = n_male,
+                                         samp_y = n_female),
+                               .f = boot_adj_prop,
+                               seed = 4,
+                               .progress = TRUE),
+        x_y_est = purrr::map(boot_sim,
+                             .f = est_adj_prop,
+                             .progress = TRUE),
+        prop_est = purrr::map(boot_sim,
+                              .f = est_adj_prop,
+                              estimate = "prop_x",
+                              .progress = TRUE),
+        adj_male = purrr::map_dbl(boot_sim,
+                                  .f = function(x) {
+                                    median(x$x_boot)
+                                  })) |>
+      tidyr::unnest(c(x_y_est,
+                      prop_est)) |>
+      dplyr::mutate(
+        dplyr::across(n_female,
+                      ~ case_when(n_male != adj_male ~ n_sexed - adj_male,
+                                  .default = .)),
+        dplyr::across(n_male,
+                      ~ case_when(n_male != adj_male ~ adj_male,
+                                  .default = .)),
+        fpr = x_y_est + 1
+      ) |>
+      dplyr::rename(fpr_se = x_y_se,
+                    prop_m = prop_x,
+                    prop_se = prop_x_se) |>
+      dplyr::select(dplyr::any_of(names(fpr_all)))
+
+    # add other information back
+    adj_fpr <-
+      fpr_all |>
+      dplyr::select(!any_of(names(adj_fpr)),
+                    spawn_year,
+                    location) |>
+      dplyr::left_join(adj_fpr,
+                       by = dplyr::join_by(spawn_year,
+                                           location)) |>
+      dplyr::select(dplyr::all_of(names(fpr_all)))
+
+#
+#
+#     adj_fpr <- fpr_all |>
+#       dplyr::select(
+#         spawn_year,
+#         location,
+#         n_male,
+#         n_female
+#       ) |>
+#       tidyr::pivot_longer(
+#         cols = c(
+#           n_male,
+#           n_female
+#         ),
+#         names_to = "sex",
+#         values_to = "n_fish"
+#       ) |>
+#       dplyr::mutate(
+#         dplyr::across(
+#           sex,
+#           ~ stringr::str_remove(
+#             .,
+#             "^n_"
+#           )
+#         ),
+#         dplyr::across(
+#           sex,
+#           stringr::str_to_title
+#         )
+#       ) |>
+#       dplyr::mutate(
+#         dplyr::across(
+#           sex,
+#           ~ dplyr::recode(.,
+#                           "Male" = "M",
+#                           "Female" = "F"
+#           )
+#         )
+#       ) |>
+#       dplyr::left_join(
+#         sex_err_rate |>
+#           dplyr::select(
+#             spawn_year,
+#             sex,
+#             dplyr::starts_with("perc_")
+#           ),
+#         by = c("spawn_year", "sex")
+#       ) |>
+#       tidyr::pivot_wider(
+#         names_from = sex,
+#         values_from = c(
+#           n_fish,
+#           perc_false,
+#           perc_se
+#         )
+#       ) |>
+#       dplyr::mutate(
+#         true_male = n_fish_M - (n_fish_M * perc_false_M) + (n_fish_F * perc_false_F),
+#         true_female = n_fish_F - (n_fish_F * perc_false_F) + (n_fish_M * perc_false_M),
+#         dplyr::across(
+#           starts_with("true"),
+#           janitor::round_half_up
+#         )
+#       ) |>
+#       dplyr::rowwise() |>
+#       dplyr::mutate(
+#         true_m_se = msm::deltamethod(~ x1 - (x1 * x2) + (x3 * x4),
+#                                      mean = c(
+#                                        n_fish_M,
+#                                        perc_false_M,
+#                                        n_fish_F,
+#                                        perc_false_F
+#                                      ),
+#                                      cov = diag(c(
+#                                        0,
+#                                        perc_se_M,
+#                                        0,
+#                                        perc_se_F
+#                                      )^2)
+#         ),
+#         true_f_se = msm::deltamethod(~ x1 - (x1 * x2) + (x3 * x4),
+#                                      mean = c(
+#                                        n_fish_F,
+#                                        perc_false_F,
+#                                        n_fish_M,
+#                                        perc_false_M
+#                                      ),
+#                                      cov = diag(c(
+#                                        0,
+#                                        perc_se_F,
+#                                        0,
+#                                        perc_se_M
+#                                      )^2)
+#         )
+#       ) |>
+#       dplyr::mutate(
+#         n_sexed = true_male + true_female,
+#         prop_m = true_male / (true_male + true_female),
+#         prop_se = msm::deltamethod(~ x1 / (x1 + x2),
+#                                    mean = c(
+#                                      true_male,
+#                                      true_female
+#                                    ),
+#                                    cov = diag(c(
+#                                      true_m_se,
+#                                      true_f_se
+#                                    )^2)
+#         ),
+#         fpr = (prop_m) / (1 - prop_m) + 1,
+#         fpr_se = msm::deltamethod(~ x1 / (1 - x1) + 1,
+#                                   mean = prop_m,
+#                                   cov = prop_se^2
+#         )
+#       ) |>
+#       dplyr::ungroup() |>
+#       dplyr::rename(
+#         n_male = true_male,
+#         n_female = true_female
+#       ) |>
+#       dplyr::left_join(
+#         fpr_all |>
+#           dplyr::select(
+#             spawn_year,
+#             location,
+#             n_wild,
+#             n_hatch,
+#             contains("n_hor"),
+#             n_origin,
+#             starts_with("phos")
+#           ),
+#         by = c("spawn_year", "location")
+#       ) |>
+#       dplyr::select(dplyr::any_of(names(fpr_all)))
+
+    # # look at changes to fish/redd
+    # fpr_all |>
+    #   select(spawn_year,
+    #          location,
+    #          old_fpr = fpr) |>
+    #   left_join(adj_fpr |>
+    #               select(spawn_year,
+    #                      location,
+    #                      adj_fpr = fpr))
+
+    # if any fpr values are Inf, use the older ones
+    if (sum(adj_fpr$fpr == Inf) > 0) {
+      adj_fpr <- adj_fpr |>
+        dplyr::left_join(fpr_all |>
+                           dplyr::select(location,
+                                         old_fpr = fpr,
+                                         old_se = fpr_se
+                           )) |>
+        dplyr::mutate(
+          fpr = dplyr::if_else(is.na(fpr) | fpr == Inf,
+                               old_fpr,
+                               fpr
+          ),
+          fpr_se = dplyr::if_else(is.na(fpr_se) | fpr_se == Inf,
+                                  old_se,
+                                  fpr_se
           )
-        ),
-        across(
-          fpr_se,
-          ~ case_when(n_male == 0 | fpr == 1 ~ avg_fpr$fpr_se,
-            .default = .
+        ) |>
+        dplyr::select(-dplyr::starts_with("old"))
+    }
+
+    # if any values are 1 (i.e. no males) use a weighted average
+    if (sum(adj_fpr$fpr == 1) > 0) {
+      avg_fpr <-
+        adj_fpr |>
+        filter(n_male > 0) |>
+        summarize(across(
+          c(
+            fpr,
+            fpr_se
+          ),
+          ~ weighted.mean(.,
+                          w = n_sexed
+          )
+        ))
+
+      adj_fpr <-
+        adj_fpr |>
+        mutate(
+          across(
+            fpr,
+            ~ case_when(n_male == 0 | fpr == 1 ~ avg_fpr$fpr,
+                        .default = .
+            )
+          ),
+          across(
+            fpr_se,
+            ~ case_when(n_male == 0 | fpr == 1 ~ avg_fpr$fpr_se,
+                        .default = .
+            )
           )
         )
-      )
+    }
+
+
+    fpr_all <- adj_fpr
+
+    rm(adj_fpr)
+  } else {
+    sex_err_rate <-
+      tibble(spawn_yr = query_year)
   }
-
-
-  fpr_all <- adj_fpr
-
-  rm(adj_fpr)
 
   #-----------------------------------------------------------------
   # read in data about known removals of fish prior to spawning
   if (file.exists(paste(removal_file_path,
-    removal_file_name,
-    sep = "/"
+                        removal_file_name,
+                        sep = "/"
   ))) {
     if (stringr::str_detect(removal_file_name, "csv$")) {
       removal_df <- readr::read_csv(paste(removal_file_path,
-        removal_file_name,
-        sep = "/"
+                                          removal_file_name,
+                                          sep = "/"
       )) |>
         janitor::clean_names() |>
         dplyr::filter(
@@ -652,11 +727,11 @@ prep_uc_sthd_data <- function(
         )
     }
     if (stringr::str_detect(removal_file_name, "xls$") |
-      stringr::str_detect(removal_file_name, "xlsx$")) {
+        stringr::str_detect(removal_file_name, "xlsx$")) {
       removal_df <- readxl::read_excel(
         paste(removal_file_path,
-          removal_file_name,
-          sep = "/"
+              removal_file_name,
+              sep = "/"
         ),
         skip = 3,
         col_names = c(
@@ -700,7 +775,7 @@ prep_uc_sthd_data <- function(
         ) |>
         dplyr::mutate(origin = stringr::str_sub(source, -1)) |>
         dplyr::relocate(origin,
-          .before = "removed"
+                        .before = "removed"
         ) |>
         dplyr::filter(origin %in% c("h", "w")) |>
         dplyr::mutate(
@@ -725,8 +800,8 @@ prep_uc_sthd_data <- function(
           dplyr::across(
             origin,
             ~ dplyr::recode(.,
-              "h" = "Hatchery",
-              "w" = "Natural"
+                            "h" = "Hatchery",
+                            "w" = "Natural"
             )
           )
         ) |>
@@ -790,11 +865,11 @@ prep_uc_sthd_data <- function(
   # non-tributary locations
   main_locs <-
     all_locs[all_locs %in%
-      union(
-        all_locs[stringr::str_detect(all_locs, "_bb$")],
-        all_locs[stringr::str_detect(all_locs, "_bb$")] |>
-          stringr::str_remove("_bb$")
-      )]
+               union(
+                 all_locs[stringr::str_detect(all_locs, "_bb$")],
+                 all_locs[stringr::str_detect(all_locs, "_bb$")] |>
+                   stringr::str_remove("_bb$")
+               )]
 
   # tributary locations
   trib_locs <-
@@ -802,16 +877,16 @@ prep_uc_sthd_data <- function(
 
   all_escp <- dabom_df |>
     dplyr::mutate(escp = purrr::map2(spawn_year,
-      dam_nm,
-      .f = function(yr, dam_nm) {
-        sroem::query_dabom_results(
-          dabom_file_path = dabom_file_path,
-          dabom_dam_nm = dam_nm,
-          dabom_file_name = dabom_file_name,
-          query_year = yr,
-          result_type = "escape_summ"
-        )
-      }
+                                     dam_nm,
+                                     .f = function(yr, dam_nm) {
+                                       sroem::query_dabom_results(
+                                         dabom_file_path = dabom_file_path,
+                                         dabom_dam_nm = dam_nm,
+                                         dabom_file_name = dabom_file_name,
+                                         query_year = yr,
+                                         result_type = "escape_summ"
+                                       )
+                                     }
     )) |>
     dplyr::select(-c(
       spawn_year,
@@ -820,24 +895,24 @@ prep_uc_sthd_data <- function(
     tidyr::unnest(escp) |>
     dplyr::filter(location %in% all_locs) |>
     dplyr::select(spawn_year,
-      origin,
-      location,
-      estimate = median,
-      se = sd,
-      lci = lower_ci,
-      uci = upper_ci
+                  origin,
+                  location,
+                  estimate = median,
+                  se = sd,
+                  lci = lower_ci,
+                  uci = upper_ci
     )
 
   # pull out estimates of tributary spawners from DABOM
   trib_spawners_all <- all_escp |>
     dplyr::filter(location %in% trib_locs) |>
     dplyr::select(spawn_year,
-      origin,
-      location,
-      spawners = estimate,
-      spawners_se = se,
-      lci,
-      uci
+                  origin,
+                  location,
+                  spawners = estimate,
+                  spawners_se = se,
+                  lci,
+                  uci
     ) |>
     dplyr::mutate(
       dplyr::across(
@@ -904,16 +979,16 @@ prep_uc_sthd_data <- function(
   escp_est_all <-
     dabom_df |>
     dplyr::mutate(post = purrr::map2(spawn_year,
-      dam_nm,
-      .f = function(yr, dam_nm) {
-        sroem::query_dabom_results(
-          dabom_file_path = dabom_file_path,
-          dabom_dam_nm = dam_nm,
-          dabom_file_name = dabom_file_name,
-          query_year = yr,
-          result_type = "escape_post"
-        )
-      }
+                                     dam_nm,
+                                     .f = function(yr, dam_nm) {
+                                       sroem::query_dabom_results(
+                                         dabom_file_path = dabom_file_path,
+                                         dabom_dam_nm = dam_nm,
+                                         dabom_file_name = dabom_file_name,
+                                         query_year = yr,
+                                         result_type = "escape_post"
+                                       )
+                                     }
     )) |>
     dplyr::select(-dam_nm) |>
     tidyr::unnest(post) |>
@@ -977,10 +1052,10 @@ prep_uc_sthd_data <- function(
     escp_phos <-
       escp_est_all |>
       dplyr::bind_rows(trib_spawners_all |>
-        dplyr::rename(
-          estimate = spawners,
-          se = spawners_se
-        )) |>
+                         dplyr::rename(
+                           estimate = spawners,
+                           se = spawners_se
+                         )) |>
       dplyr::select(
         spawn_year,
         location,
@@ -996,14 +1071,14 @@ prep_uc_sthd_data <- function(
       dplyr::mutate(
         phos = estimate_Hatchery / (estimate_Hatchery + estimate_Natural),
         phos_se = msm::deltamethod(~ x1 / (x1 + x2),
-          mean = c(
-            estimate_Hatchery,
-            estimate_Natural
-          ),
-          cov = diag(c(
-            se_Hatchery,
-            se_Natural
-          )^2)
+                                   mean = c(
+                                     estimate_Hatchery,
+                                     estimate_Natural
+                                   ),
+                                   cov = diag(c(
+                                     se_Hatchery,
+                                     se_Natural
+                                   )^2)
         )
       ) |>
       dplyr::ungroup()
@@ -1013,9 +1088,9 @@ prep_uc_sthd_data <- function(
       dplyr::left_join(
         escp_phos |>
           dplyr::select(spawn_year,
-            location,
-            phos2 = phos,
-            phos_se2 = phos_se
+                        location,
+                        phos2 = phos,
+                        phos_se2 = phos_se
           ),
         by = dplyr::join_by(spawn_year, location)
       ) |>
@@ -1023,15 +1098,15 @@ prep_uc_sthd_data <- function(
         dplyr::across(
           phos,
           ~ dplyr::if_else(!is.na(phos2),
-            phos2,
-            .
+                           phos2,
+                           .
           )
         ),
         dplyr::across(
           phos_se,
           ~ dplyr::if_else(!is.na(phos_se2),
-            phos_se2,
-            .
+                           phos_se2,
+                           .
           )
         )
       ) |>
@@ -1085,16 +1160,16 @@ prep_uc_sthd_data <- function(
       }
 
       save(redd_df,
-        basin_tags,
-        sex_err,
-        fpr_df,
-        trib_spawners,
-        escp_est,
-        rem_df,
-        file = paste(save_file_path,
-          file_nm,
-          sep = "/"
-        )
+           basin_tags,
+           sex_err,
+           fpr_df,
+           trib_spawners,
+           escp_est,
+           rem_df,
+           file = paste(save_file_path,
+                        file_nm,
+                        sep = "/"
+           )
       )
       rm(file_nm)
     }
@@ -1124,8 +1199,8 @@ prep_uc_sthd_data <- function(
           save_file_name <- paste0(
             basin, "_",
             paste(min(query_year),
-              max(query_year),
-              sep = "-"
+                  max(query_year),
+                  sep = "-"
             ),
             ".rda"
           )
@@ -1138,32 +1213,32 @@ prep_uc_sthd_data <- function(
         }
       }
       save(redd_df,
-        basin_tags,
-        sex_err,
-        fpr_df,
-        trib_spawners,
-        escp_est,
-        rem_df,
-        file = paste(save_file_path,
-          save_file_name,
-          sep = "/"
-        )
+           basin_tags,
+           sex_err,
+           fpr_df,
+           trib_spawners,
+           escp_est,
+           rem_df,
+           file = paste(save_file_path,
+                        save_file_name,
+                        sep = "/"
+           )
       )
     } else {
       tmp_file <- tempfile(fileext = ".rda")
 
       save(redd_df,
-        basin_tags,
-        sex_err,
-        fpr_df,
-        trib_spawners,
-        escp_est,
-        rem_df,
-        file = tmp_file
+           basin_tags,
+           sex_err,
+           fpr_df,
+           trib_spawners,
+           escp_est,
+           rem_df,
+           file = tmp_file
       )
 
       load(tmp_file,
-        envir = .GlobalEnv
+           envir = .GlobalEnv
       )
 
       file.remove(tmp_file)

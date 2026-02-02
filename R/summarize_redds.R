@@ -88,7 +88,7 @@ summarize_redds <- function(redd_df = NULL,
       ),
       strm_se = purrr::map_dbl(data,
         .f = function(x) {
-          sqrt(sum(x$redd_se, na.rm = T)^2)
+          sqrt(sum(x$redd_se^2, na.rm = T))
         }
       )
     )
@@ -120,7 +120,8 @@ summarize_redds <- function(redd_df = NULL,
         .groups = "drop"
       )
 
-    return_list$summ_est <- summ_est %>%
+    return_list$summ_est <-
+      summ_est %>%
       rename(strm_se_naive = strm_se) %>%
       dplyr::left_join(cor_df,
         by = {{ summ_vars }}
@@ -133,18 +134,18 @@ summarize_redds <- function(redd_df = NULL,
             deltamethod(as.formula(paste("~", paste0("x", 1:nrow(x), collapse = "+"))),
               mean = x$redd_est,
               cov = diag(
-                x = x$redd_se^2,
+                x = x$redd_se,
                 nrow = nrow(y)
               ) %*% y %*%
                 diag(
-                  x = x$redd_se^2,
+                  x = x$redd_se,
                   nrow = nrow(y)
                 )
             ),
             silent = T
           )
 
-          if (inherits(se, "try-error") | is.na(se)) {
+          if (inherits(se, "try-error") | is.na(se) | se == 0) {
             se <- sqrt(sum(x$redd_se^2, na.rm = T))
           }
 

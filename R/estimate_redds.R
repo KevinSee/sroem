@@ -53,10 +53,10 @@ estimate_redds <- function(redd_df = NULL,
 
   redd_results <- redd_df %>%
     dplyr::select(all_of({{ group_vars }}),
-      new_redds = {{ new_redd_nm }},
-      vis_redds = {{ vis_redd_nm }},
-      net_err = {{ net_err_nm }},
-      net_se = {{ net_se_nm }}
+      new_redds = all_of({{ new_redd_nm }}),
+      vis_redds = all_of({{ vis_redd_nm }}),
+      net_err = all_of({{ net_err_nm }}),
+      net_se = all_of({{ net_se_nm }})
     ) %>%
     dplyr::group_by(across({{ group_vars }})) %>%
     dplyr::summarise(
@@ -83,7 +83,7 @@ estimate_redds <- function(redd_df = NULL,
       dplyr::mutate(gauc_list = purrr::map(data,
         .f = safely(function(x, ...) {
           mod_df <- x %>%
-            dplyr::select(redds = {{ new_redd_nm }}) %>%
+            dplyr::select(redds = all_of({{ new_redd_nm }})) %>%
             dplyr::mutate(day = 1:n())
 
           if (add_zeros) {
