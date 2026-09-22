@@ -34,7 +34,17 @@ prep_uc_sthd_data <- function(
     redd_file_name = NULL,
     experience_path = NULL,
     experience_file_name = NULL,
-    dabom_file_path = "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
+    dabom_file_path = file.path("C:",
+                                "Users",
+                                "seek1477",
+                                "Documents",
+                                "Git",
+                                "MyProjects",
+                                "DabomPriestRapidsSthd",
+                                "analysis",
+                                "data",
+                                "derived_data",
+                                "estimates"),
     dabom_file_name = "UC_Sthd_DABOM_",
     brood_file_path = "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Bio Data/Sex and Origin PRD-Brood Comparison Data",
     brood_file_name = "STHD UC Brood Collections_2011 to current.xlsx",
@@ -125,9 +135,9 @@ prep_uc_sthd_data <- function(
 
   dabom_df <- dplyr::tibble(
     spawn_year = query_year,
-    dam_nm = dplyr::if_else(spawn_year %in% c(2011:2015, 2018),
-                            "PriestRapids",
-                            "RockIsland"
+    dam_nm = dplyr::case_when(spawn_year %in% c(2011:2015, 2018) ~ "PriestRapids",
+                              spawn_year >= 2025 ~ "PriestRapids",
+                              .default = "RockIsland"
     )
   )
 

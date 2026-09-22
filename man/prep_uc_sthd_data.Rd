@@ -11,8 +11,9 @@ prep_uc_sthd_data(
   redd_file_name = NULL,
   experience_path = NULL,
   experience_file_name = NULL,
-  dabom_file_path =
-    "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
+  dabom_file_path = file.path("C:", "Users", "seek1477", "Documents", "Git",
+    "MyProjects", "DabomPriestRapidsSthd", "analysis", "data", "derived_data",
+    "estimates"),
   dabom_file_name = "UC_Sthd_DABOM_",
   brood_file_path =
     "T:/DFW-Team FP Upper Columbia Escapement - General/UC_Sthd/inputs/Bio Data/Sex and Origin PRD-Brood Comparison Data",
