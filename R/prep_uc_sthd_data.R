@@ -136,7 +136,7 @@ prep_uc_sthd_data <- function(
   dabom_df <- dplyr::tibble(
     spawn_year = query_year,
     dam_nm = dplyr::case_when(spawn_year %in% c(2011:2015, 2018) ~ "PriestRapids",
-                              spawn_year >= 2025 ~ "PriestRapids",
+                              spawn_year >= 2026 ~ "PriestRapids",
                               .default = "RockIsland"
     )
   )
