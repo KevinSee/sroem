@@ -349,16 +349,24 @@ query_redd_data <- function(
       function(x, y) {
         if (nchar(x) == 8) {
           z <-
-            try(dataRetrieval::readNWISdv(x,
-              parameterCd = "00060", # discharge
-              startDate = as.character(lubridate::ymd(y)),
-              endDate = as.character(lubridate::ymd(y)),
-              statCd = "00003"
-            ) |> # mean
-              suppressMessages() |>
-              dplyr::rename(mean_discharge = X_00060_00003) |>
-              # dplyr::select(-c(agency_cd:Date, X_00060_00003_cd))
-              dplyr::select(mean_discharge))
+            # try(dataRetrieval::readNWISdv(x,
+            #   parameterCd = "00060", # discharge
+            #   startDate = as.character(lubridate::ymd(y)),
+            #   endDate = as.character(lubridate::ymd(y)),
+            #   statCd = "00003"
+            # ) |> # mean
+            #   suppressMessages() |>
+            #   dplyr::rename(mean_discharge = X_00060_00003) |>
+            #   # dplyr::select(-c(agency_cd:Date, X_00060_00003_cd))
+            #   dplyr::select(mean_discharge))
+            try(dataRetrieval::read_waterdata_daily(monitoring_location_id = paste("USGS", x, sep = "-"),
+                                                    parameter_code = "00060",
+                                                    statistic_id = "00003",
+                                                    time = c(y, y)) |> # mean
+                  suppressMessages() |>
+                  sf::st_drop_geometry() |>
+                  dplyr::rename(mean_discharge = value) |>
+                  dplyr::select(mean_discharge))
         } else {
           doe_file_nm <- paste0(
             "https://apps.ecology.wa.gov/ContinuousFlowAndWQ/StationData/Prod/",
