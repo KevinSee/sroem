@@ -15,7 +15,18 @@
 #' @export
 
 query_dabom_results <- function(
-    dabom_file_path = "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
+    # dabom_file_path = "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
+    dabom_file_path = file.path("C:",
+                                "Users",
+                                "seek1477",
+                                "Documents",
+                                "Git",
+                                "MyProjects",
+                                "DabomPriestRapidsSthd",
+                                "analysis",
+                                "data",
+                                "derived_data",
+                                "estimates"),
     dabom_dam_nm = c(
       "RockIsland",
       "PriestRapids"

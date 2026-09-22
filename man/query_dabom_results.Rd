@@ -5,8 +5,9 @@
 \title{Query DABOM results}
 \usage{
 query_dabom_results(
-  dabom_file_path =
-    "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
+  dabom_file_path = file.path("C:", "Users", "seek1477", "Documents", "Git",
+    "MyProjects", "DabomPriestRapidsSthd", "analysis", "data", "derived_data",
+    "estimates"),
   dabom_dam_nm = c("RockIsland", "PriestRapids"),
   dabom_file_name = "UC_Sthd_DABOM_",
   query_year = lubridate::year(lubridate::today()) - 1,
