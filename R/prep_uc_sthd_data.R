@@ -196,8 +196,9 @@ prep_uc_sthd_data <- function(
       dplyr::filter(stringr::str_detect(path, "LMR")) |>
       dplyr::mutate(
         location = dplyr::case_when(
-          stringr::str_detect(final_node, "^MRC") |
-            stringr::str_detect(final_node, "^LMR") ~ "Lower Methow",
+          stringr::str_detect(final_node, "^MRC") ~ "Lower Methow",
+          stringr::str_detect(final_node, "^LMR") ~ "Lower Methow",
+          stringr::str_detect(final_node, "^MTB") ~ "Lower Methow",
           stringr::str_detect(path, " LBC") ~ "Libby",
           stringr::str_detect(path, " GLC") ~ "Gold",
           stringr::str_detect(path, " BVC") ~ "Beaver",
