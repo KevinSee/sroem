@@ -193,7 +193,8 @@ prep_uc_sthd_data <- function(
   if (basin == "Methow") {
     basin_tags_all <-
       all_tags |>
-      dplyr::filter(stringr::str_detect(path, "LMR")) |>
+      dplyr::filter(stringr::str_detect(path, "LMR") |
+                      stringr::str_detect(path, "MTB")) |>
       dplyr::mutate(
         location = dplyr::case_when(
           stringr::str_detect(final_node, "^MRC") ~ "Lower Methow",
@@ -832,19 +833,37 @@ prep_uc_sthd_data <- function(
   message("\t Gathering PIT escapement estimates.\n")
 
   if (basin == "Methow") {
-    all_locs <- c(
-      "LMR",
-      "LMR_bb",
-      "MRC_bb",
-      "GLC",
-      "LBC",
-      "MSH",
-      "MRW",
-      "TWR",
-      "CRW",
-      "SCP",
-      "BVC"
-    )
+    if (sum(stringr::str_detect(all_tags$final_node, "MTB")) > 0) {
+      all_locs <- c(
+        "MTB",
+        "MTB_bb",
+        "LMR_bb",
+        "MRC_bb",
+        "GLC",
+        "LBC",
+        "MSH",
+        "MRW",
+        "TWR",
+        "CRW",
+        "SCP",
+        "BVC"
+      )
+    } else {
+
+      all_locs <- c(
+        "LMR",
+        "LMR_bb",
+        "MRC_bb",
+        "GLC",
+        "LBC",
+        "MSH",
+        "MRW",
+        "TWR",
+        "CRW",
+        "SCP",
+        "BVC"
+      )
+    }
   } else if (basin == "Wenatchee") {
     all_locs <- c(
       "ICL",
@@ -928,7 +947,7 @@ prep_uc_sthd_data <- function(
     dplyr::mutate(
       dplyr::across(
         origin,
-        ~ dplyr::case_match(
+        ~ dplyr::replace_values(
           .,
           "W" ~ "Natural",
           "H" ~ "Hatchery"
@@ -936,7 +955,7 @@ prep_uc_sthd_data <- function(
       ),
       dplyr::across(
         location,
-        ~ dplyr::case_match(
+        ~ dplyr::replace_values(
           .,
           "CHL" ~ "Chiwawa",
           "CHM" ~ "Chumstick",
@@ -1008,13 +1027,15 @@ prep_uc_sthd_data <- function(
     dplyr::mutate(
       dplyr::across(
         location,
-        ~ dplyr::case_match(
+        ~ dplyr::replace_values(
           .,
           "LWE" ~ "Wen_all",
           "LWE_bb" ~ "Below Tumwater",
           "TUM_bb" ~ "Above Tumwater",
           "UWE_bb" ~ "Above Tumwater",
           "LMR" ~ "Methow_all",
+          "MTB" ~ "Methow_all",
+          "MTB_bb" ~ "Lower Methow",
           "LMR_bb" ~ "Lower Methow",
           "MRC_bb" ~ "Lower Methow"
         )
@@ -1023,7 +1044,7 @@ prep_uc_sthd_data <- function(
     dplyr::mutate(
       dplyr::across(
         origin,
-        ~ dplyr::case_match(
+        ~ dplyr::replace_values(
           .,
           "W" ~ "Natural",
           "H" ~ "Hatchery"
