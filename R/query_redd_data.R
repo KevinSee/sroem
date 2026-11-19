@@ -129,7 +129,7 @@ query_redd_data <- function(
                                        .default = .)),
       dplyr::across(c(surveyor1,
                       surveyor2),
-                    ~ case_when(stringr::str_detect(., "\\(") ~ stringr::str_split_i(., "\\(", 1),
+                    ~ dplyr::case_when(stringr::str_detect(., "\\(") ~ stringr::str_split_i(., "\\(", 1),
                                 .default = .)),
       dplyr::across(c(surveyor1,
                       surveyor2),

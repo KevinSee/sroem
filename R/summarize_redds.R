@@ -63,8 +63,8 @@ summarize_redds <- function(redd_df = NULL,
 
   summ_est <- rch_est %>%
     dplyr::filter(.data[[reach_nm]] %in% all_rchs) %>%
-    dplyr::group_by(dplyr::across({{ summ_vars }})) %>%
-    tidyr::nest() %>%
+    tidyr::nest(data = everything(),
+                .by = {{ summ_vars}}) |>
     dplyr::ungroup() %>%
     dplyr::mutate(
       n_rchs = purrr::map_dbl(data,
@@ -102,23 +102,26 @@ summarize_redds <- function(redd_df = NULL,
   if (use_cor) {
     # generate correlation matrix
     cor_df <- redd_df %>%
-      dplyr::group_by(across({{ summ_vars }})) %>%
-      tidyr::nest() %>%
-      dplyr::summarize(
-        cor_mat = purrr::map(data,
-          .f = function(x) {
-            correlate_rchs(x,
-              date_nm = date_nm,
-              cor_redd_nm = cor_redd_nm,
-              reach_nm = reach_nm,
-              use = use,
-              method = method,
-              ...
-            )
-          }
-        ),
-        .groups = "drop"
-      )
+      tidyr::nest(data = everything(),
+                  .by = {{ summ_vars}} ) |>
+      dplyr::mutate(
+        cor_res = purrr::map(data,
+                             .f = purrr::safely(
+                               function(x) {
+                                 correlate_rchs(x,
+                                                date_nm = date_nm,
+                                                cor_redd_nm = cor_redd_nm,
+                                                reach_nm = reach_nm,
+                                                use = use,
+                                                method = method#,
+                                                # ...
+                                 )
+                               })
+        )) |>
+      dplyr::mutate(cor_mat = purrr::map(cor_res,
+                                         "result")) |>
+      dplyr::select(all_of({{ summ_vars }}),
+                    cor_mat)
 
     return_list$summ_est <-
       summ_est %>%
@@ -148,7 +151,6 @@ summarize_redds <- function(redd_df = NULL,
           if (inherits(se, "try-error") | is.na(se) | se == 0) {
             se <- sqrt(sum(x$redd_se^2, na.rm = T))
           }
-
 
           return(se)
         }
