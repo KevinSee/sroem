@@ -457,6 +457,8 @@ prep_uc_sthd_data <- function(
 
     adj_fpr <-
       fpr_all |>
+      filter_out(n_male == 0 |
+                   n_female == 0) |>
       dplyr::select(spawn_year:n_sexed) |>
       dplyr::left_join(sex_err_rate |>
                          dplyr::select(spawn_year,
@@ -502,6 +504,13 @@ prep_uc_sthd_data <- function(
                     prop_m = prop_x,
                     prop_se = prop_x_se) |>
       dplyr::select(dplyr::any_of(names(fpr_all)))
+
+    adj_fpr <-
+      adj_fpr |>
+      dplyr::bind_rows(fpr_all |>
+                  dplyr::filter(n_male == 0 |
+                           n_female == 0) |>
+                    dplyr::select(dplyr::any_of(names(adj_fpr))))
 
     # add other information back
     adj_fpr <-
