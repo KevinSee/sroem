@@ -10,9 +10,9 @@ print_mod_summ(
 )
 }
 \arguments{
-\item{species}{which species is being analyzed? This function chooses the appropriate error model for this species. Choices are \code{Steelhead} or \code{Chinook}, with \code{Steelhead} being the default.}
+\item{species}{\code{"Steelhead"} or \code{"Spring Chinook"}.}
 
-\item{num_obs}{if species is \code{Steelhead}, which error model to use, for one or two observers? Default is \code{two}.}
+\item{num_obs}{Steelhead model to use: \code{"two"} or \code{"one"}.}
 }
 \value{
 dataframe

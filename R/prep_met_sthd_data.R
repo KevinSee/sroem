@@ -1,11 +1,12 @@
 #' @title Prepare All Data from Methow for a Report
 #'
 #' @description This function pulls together redd survey data and estimates net error for each survey, PIT tags detected in the Methow, error rates of sex calls at Priest, a corrected fish/redd estimate based on sex ratios adjusted for the error rate of sex calls at Priest, estimates of escapement to various tributaries in the Methow as well as run escapement to the Methow as a whole and the number of known removals (e.g. broodstock collection, harvest). These are all either saved as an .RData object, or loaded into the global environment.
+#'   This legacy function is superseded by [prep_uc_sthd_data()].
 #'
 #' @author Kevin See
 #'
 #' @inheritParams prep_wen_sthd_data
-#' @import rlang purrr dplyr readxl readr janitor tidyr lubridate
+#' @import purrr dplyr readxl readr janitor tidyr lubridate
 #' @importFrom DescTools BinomCI
 #' @importFrom msm deltamethod
 #' @return either saves an .Rdata object with output for a given year, or loads those results into global environment.

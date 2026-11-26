@@ -2,7 +2,7 @@
 % Please edit documentation in R/correlate_rchs.R
 \name{correlate_rchs}
 \alias{correlate_rchs}
-\title{Estimate Correlation Between Reaches}
+\title{Estimate correlations between reaches}
 \usage{
 correlate_rchs(
   redd_df = NULL,
@@ -11,26 +11,51 @@ correlate_rchs(
   reach_nm = "Reach",
   use = "pairwise.complete.obs",
   make_na_zero = TRUE,
+  correlation_data = c("counts", "errors"),
+  error_nm = NULL,
+  year_mode = c("pooled", "per_year", "legacy"),
   ...
 )
 }
 \arguments{
-\item{redd_df}{dataframe containing redd data, including estimates of observer error}
+\item{redd_df}{Data frame containing reach identifiers, survey dates, and
+the chosen correlation variable.}
 
-\item{date_nm}{quoted name of column in {redd_df} listing date of each survey}
+\item{date_nm, cor_redd_nm, reach_nm}{Names of the survey date, observed
+redd count, and reach columns.}
 
-\item{cor_redd_nm}{quoted name of column in {redd_df} listing number of redds found during that survey, to be used in the correlation}
+\item{use}{Missing-observation method passed to \code{\link[stats:cor]{stats::cor()}}.}
 
-\item{reach_nm}{quoted name of column in {redd_df} listing name of reach}
+\item{make_na_zero}{Must be \code{TRUE}: undefined correlations are treated as
+independent. Retained to give existing callers an informative error if
+they explicitly request the previous \code{FALSE} behavior.}
 
-\item{make_na_zero}{should NAs in the correlation matrix be set to 0? Default is \code{TRUE}}
+\item{correlation_data}{Whether to correlate \code{"counts"} or \code{"errors"}.}
+
+\item{error_nm}{Name of a numeric column containing signed estimation
+errors, required when \code{correlation_data = "errors"}. Errors should use
+a consistent definition and scale across reaches; uncertainty estimates
+alone do not provide estimation errors.}
+
+\item{year_mode}{\code{"pooled"} distinguishes calendar year and week;
+\code{"per_year"} calculates a separate matrix for each year; \code{"legacy"}
+averages observations by week across years.}
+
+\item{...}{Additional arguments passed to \code{\link[stats:cor]{stats::cor()}}, such as \code{method}.}
 }
 \value{
-dataframe
+A reach-named correlation matrix, or a named list of matrices when
+\code{year_mode = "per_year"}. Diagonal entries are one.
 }
 \description{
-Estimates correlation between reaches, to be used when calculating standard error across multiple reaches so reaches aren't necessarily treated independently
+Calculates correlations of weekly mean observed redd counts or supplied
+signed estimation errors. Undefined correlations are set to zero, with a
+message identifying the affected reach pairs.
 }
-\author{
-Kevin See
+\details{
+Weekly values are means of the supplied observations. When
+correlating errors, callers must supply appropriate signed error
+observations; this function cannot determine true errors from model
+standard errors. Correlations of survey-level errors are not necessarily
+correlations of reach-level abundance estimation errors.
 }

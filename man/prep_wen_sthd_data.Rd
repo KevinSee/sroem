@@ -29,17 +29,17 @@ prep_wen_sthd_data(
 )
 }
 \arguments{
-\item{redd_file_path}{file path to redd data file}
+\item{redd_file_path}{Directory containing the survey workbook.}
 
-\item{redd_file_name}{name of Excel file containing redd data in a very particular format, including sheets labeled "Reach Length", "Thalweg CV", "Discharge Gages" and "Redd Surveys".}
+\item{redd_file_name}{Workbook containing sheets \code{"Reach Length"},
+\code{"Thalweg CV"}, \code{"Discharge Gages"}, and \code{"Redd Surveys"}.}
 
-\item{experience_path}{file path to experience file}
+\item{experience_path, experience_file_name}{Directory and workbook containing
+the \code{"Experience"} sheet. By default these are the survey workbook.}
 
-\item{experience_file_name}{name of Excel file containing experience data in a very particular format, with a sheet labeled "Experience"}
+\item{dabom_file_path}{Directory containing the dam-specific folders.}
 
-\item{dabom_file_path}{file path to DABOM results. Should contain at least two folders names \code{RockIsland} and \code{PriestRapids}.}
-
-\item{dabom_file_name}{partial name of .Rdata object saved after running DABOM model for Upper Columbia.}
+\item{dabom_file_name}{Prefix of the \code{.rda} file, before the year.}
 
 \item{brood_file_path}{file path to broodstock collection file}
 
@@ -51,11 +51,13 @@ prep_wen_sthd_data(
 
 \item{n_observers}{how many observers / boats were used on each survey?}
 
-\item{query_year}{which year or years should be included in this query?}
+\item{query_year}{Spawn years to include.}
 
 \item{phos_data}{should the data used to estimate pHOS come from PIT \code{tags} or \code{escapement} estimates? Default is \code{escapement}.}
 
 \item{save_rda}{should the data that's returned by saved as an .RData object (\code{TRUE})? Default value of \code{FALSE} loads all the returned objects into the Global Environment.}
+
+\item{save_by_year}{If saving, save a separate file for each year.}
 
 \item{save_file_path}{if \code{save_rda} is \code{TRUE}, where should the .RData object be saved?}
 
@@ -66,6 +68,7 @@ either saves an .Rdata object with output for a given year, or loads those resul
 }
 \description{
 This function pulls together redd survey data and estimates net error for each survey, PIT tags detected in the Wenatchee, error rates of sex calls at Priest, a corrected fish/redd estimate based on sex ratios adjusted for the error rate of sex calls at Priest, estimates of escapement to various tributaries in the Wenatchee as well as run escapement to the Wenatchee as a whole and the number of known removals (e.g. broodstock collection, harvest). These are all either saved as an .RData object, or loaded into the global environment.
+This legacy function is superseded by \code{\link[=prep_uc_sthd_data]{prep_uc_sthd_data()}}.
 }
 \author{
 Kevin See

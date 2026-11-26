@@ -24,25 +24,31 @@ prep_uc_sthd_data(
   n_observers = "two",
   query_year = lubridate::year(lubridate::today()) - 1,
   phos_data = c("escapement", "tags"),
-  adjust_fpr = T,
-  save_rda = F,
-  save_by_year = T,
+  adjust_fpr = TRUE,
+  save_rda = FALSE,
+  save_by_year = TRUE,
   save_file_path = here::here("analysis/data/derived_data"),
-  save_file_name = NULL
+  save_file_name = NULL,
+  sex_error_prior = c(0.5, 0.5),
+  sex_zero_error = list(),
+  assign_global = FALSE
 )
 }
 \arguments{
-\item{redd_file_path}{file path to redd data file}
+\item{basin}{Basin to prepare: \code{"Wenatchee"} or \code{"Methow"}. \code{"Entiat"}
+is reserved for a future implementation.}
 
-\item{redd_file_name}{name of Excel file containing redd data in a very particular format, including sheets labeled "Reach Length", "Thalweg CV", "Discharge Gages" and "Redd Surveys".}
+\item{redd_file_path}{Directory containing the survey workbook.}
 
-\item{experience_path}{file path to experience file}
+\item{redd_file_name}{Workbook containing sheets \code{"Reach Length"},
+\code{"Thalweg CV"}, \code{"Discharge Gages"}, and \code{"Redd Surveys"}.}
 
-\item{experience_file_name}{name of Excel file containing experience data in a very particular format, with a sheet labeled "Experience"}
+\item{experience_path, experience_file_name}{Directory and workbook containing
+the \code{"Experience"} sheet. By default these are the survey workbook.}
 
-\item{dabom_file_path}{file path to DABOM results. Should contain at least two folders names \code{RockIsland} and \code{PriestRapids}.}
+\item{dabom_file_path}{Directory containing the dam-specific folders.}
 
-\item{dabom_file_name}{partial name of .Rdata object saved after running DABOM model for Upper Columbia.}
+\item{dabom_file_name}{Prefix of the \code{.rda} file, before the year.}
 
 \item{brood_file_path}{file path to broodstock collection file}
 
@@ -54,23 +60,51 @@ prep_uc_sthd_data(
 
 \item{n_observers}{how many observers / boats were used on each survey?}
 
-\item{query_year}{which year or years should be included in this query?}
+\item{query_year}{Spawn years to include.}
 
 \item{phos_data}{should the data used to estimate pHOS come from PIT \code{tags} or \code{escapement} estimates? Default is \code{escapement}.}
 
 \item{adjust_fpr}{should sex data from broodstock collections be used to assess error rate of sex calls at Priest, and then adjust fish / redd values based on those error rates. Default value is \code{TRUE}.}
 
-\item{save_rda}{should the data that's returned by saved as an .RData object (\code{TRUE})? Default value of \code{FALSE} loads all the returned objects into the Global Environment.}
+\item{save_rda}{If \code{TRUE}, also save the output objects in R data files.}
+
+\item{save_by_year}{If saving, save a separate file for each year rather
+than a single combined file. Defaults to \code{TRUE}.}
 
 \item{save_file_path}{if \code{save_rda} is \code{TRUE}, where should the .RData object be saved?}
 
-\item{save_file_name}{if \code{save_rda} is \code{TRUE}, what should the file name be? Should end in ".rda".}
+\item{save_file_name}{Optional file name. A custom name may not be used
+with multiple years and \code{save_by_year = TRUE}, to prevent overwrites.}
+
+\item{sex_error_prior}{Positive beta prior shape parameters passed to
+\code{\link[=boot_adj_prop]{boot_adj_prop()}} for sex-call error, defaulting to Jeffreys' prior.}
+
+\item{sex_zero_error}{Named list indexed by spawn year. Each entry is
+\code{"x"}, \code{"y"}, or \code{c("x", "y")}, fixing the true male (x) and/or
+true female (y) error rate at zero without uncertainty. Use only when
+external evidence supports an exact zero, not just for small samples.}
+
+\item{assign_global}{If \code{TRUE}, also assign the returned objects to the
+global environment, replacing objects with the same names. Default \code{FALSE}.}
 }
 \value{
-either saves an .Rdata object with output for a given year, or loads those results into global environment.
+A named list with \code{redd_df}, \code{basin_tags}, \code{sex_err}, \code{fpr_df},
+\code{trib_spawners}, \code{escp_est}, and \code{rem_df}. Redd or removal data may be
+\code{NULL} when unavailable. The list includes all requested years whether or
+not files are saved or objects are assigned globally.
 }
 \description{
-This function pulls together redd survey data and estimates net error for each survey, PIT tags detected in the specified basin, error rates of sex calls at Priest, a corrected fish/redd estimate based on sex ratios adjusted for the error rate of sex calls at Priest, estimates of escapement to various tributaries in the specified basin as well as run escapement to the basin as a whole and the number of known removals (e.g. broodstock collection, harvest). These are all either saved as an .RData object, or loaded into the global environment.
+Combines redd surveys, observer-error predictions, PIT-tag
+information, sex-call error, fish per redd, escapement, and known removals.
+This unified workflow supersedes the legacy basin-specific preparation
+functions. Entiat is not yet implemented and produces an error.
+}
+\details{
+Sex-error sample sizes and false calls are grouped by known true
+sex. \code{sex_err} reports the observed proportions and binomial confidence
+intervals; the fish-per-redd adjustment instead uses the beta posterior
+or the requested fixed-zero rates. Years without known-sex observations
+rely on the prior unless a rate is explicitly fixed at zero.
 }
 \author{
 Kevin See

@@ -1,85 +1,52 @@
-#' @title Query DABOM results
+#' Read a result from a saved DABOM run
 #'
-#' @description Loads .Rdata objects that have been saved for a specific year's DABOM model run, and returns specified type of results.
+#' Loads a single named result from a DABOM `.rda` file into a private
+#' environment. Other objects in the caller's environment are not modified.
 #'
-#' @author Kevin See
+#' @param dabom_file_path Directory containing the dam-specific folders.
+#' @param dabom_dam_nm `"RockIsland"` or `"PriestRapids"`.
+#' @param dabom_file_name Prefix of the `.rda` file, before the year.
+#' @param query_year Spawn year used in the file name.
+#' @param result_type One of `"escape_summ"`, `"tag_summ"`, `"escape_post"`,
+#'   `"dam_summ"`, `"total_escape"`, `"detect_summ"`, or `"parent_child"`.
 #'
-#' @param dabom_file_path file path to DABOM results. Should contain at least two folders names `RockIsland` and `PriestRapids`.
-#' @param dabom_dam_nm name of dam where dam counts were used to generate escapement estimates. Choices are `RockIsland` (default) or `PriestRapids`
-#' @param dabom_file_name partial name of .Rdata object saved after running DABOM model for Upper Columbia.
-#' @param query_year which spawn year should results be queried fof?
-#' @param result_type what type of results should be queried for? Options include summary of escapement estimates (`escape_summ`), tag summary (`tag_summ`), posterior draws of escapement (`escape_post`), summary of dam counts and adjusted counts (`dam_summ`), total escapement by origin used in the results (`total_escape`), summary of detection probabilities (`detect_summ`) or parent-child table (`parent_child`). Default is `escape_summ`.
-#'
-#' @import lubridate
-#' @return tibble
+#' @return The selected object, with its original class and contents.
 #' @export
-
 query_dabom_results <- function(
-    # dabom_file_path = "O:Documents/Git/MyProjects/DabomPriestRapidsSthd/analysis/data/derived_data/estimates",
-    dabom_file_path = file.path("C:",
-                                "Users",
-                                "seek1477",
-                                "Documents",
-                                "Git",
-                                "MyProjects",
-                                "DabomPriestRapidsSthd",
-                                "analysis",
-                                "data",
-                                "derived_data",
-                                "estimates"),
-    dabom_dam_nm = c(
-      "RockIsland",
-      "PriestRapids"
-    ),
-    dabom_file_name = "UC_Sthd_DABOM_",
-    query_year = lubridate::year(lubridate::today()) - 1,
-    result_type = c(
-      "escape_summ",
-      "tag_summ",
-      "escape_post",
-      "dam_summ",
-      "total_escape",
-      "detect_summ",
-      "parent_child"
-    )) {
-
-  if(!is.null(dabom_dam_nm)) {
-    dabom_dam_nm <-
-      match.arg(dabom_dam_nm)
-  }
-
-  data_file <-
-    paste0(
-      dabom_file_path,
-      "/",
-      dabom_dam_nm,
-      "/",
-      dabom_file_name,
-      query_year,
-      ".rda"
-    )
-
-  if (!file.exists(data_file)) {
-    stop("File not found.")
-  }
-
+  dabom_file_path = file.path(
+    "C:", "Users", "seek1477", "Documents", "Git", "MyProjects",
+    "DabomPriestRapidsSthd", "analysis", "data", "derived_data", "estimates"
+  ),
+  dabom_dam_nm = c("RockIsland", "PriestRapids"),
+  dabom_file_name = "UC_Sthd_DABOM_",
+  query_year = lubridate::year(lubridate::today()) - 1,
+  result_type = c(
+    "escape_summ", "tag_summ", "escape_post", "dam_summ",
+    "total_escape", "detect_summ", "parent_child"
+  )
+) {
+  dabom_dam_nm <- match.arg(dabom_dam_nm)
   result_type <- match.arg(result_type)
-
-  load(data_file)
-
-  if (result_type == "escape_summ") {
-    return(escape_summ)
-  } else if (result_type == "tag_summ") {
-    return(tag_summ)
-  } else if (result_type == "escape_post") {
-    return(escape_post)
-  } else if (result_type == "dam_summ") {
-    return(dam_escp_df)
-  } else if (result_type == "total_escape") {
-    return(org_escape)
-  } else if (result_type == "detect_summ") {
-    return(detect_summ)
-  } else if (result_type == "parent_child") {
-    return(parent_child)
+  data_file <- file.path(
+    dabom_file_path, dabom_dam_nm, paste0(dabom_file_name, query_year, ".rda")
+  )
+  if (length(data_file) != 1L || !file.exists(data_file)) {
+    stop("DABOM file not found: ", paste(data_file, collapse = ", "),
+      call. = FALSE
+    )
   }
+
+  object_name <- switch(result_type,
+    dam_summ = "dam_escp_df",
+    total_escape = "org_escape",
+    result_type
+  )
+  results <- new.env(parent = emptyenv())
+  loaded <- load(data_file, envir = results)
+  if (!object_name %in% loaded) {
+    stop("DABOM file does not contain '", object_name, "': ", data_file,
+      call. = FALSE
+    )
+  }
+  get(object_name, envir = results, inherits = FALSE)
 }

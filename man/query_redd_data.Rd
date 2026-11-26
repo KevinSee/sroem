@@ -2,7 +2,7 @@
 % Please edit documentation in R/query_redd_data.R
 \name{query_redd_data}
 \alias{query_redd_data}
-\title{Query Redd Data}
+\title{Query redd surveys and discharge data}
 \usage{
 query_redd_data(
   redd_file_path =
@@ -14,22 +14,30 @@ query_redd_data(
 )
 }
 \arguments{
-\item{redd_file_path}{file path to redd data file}
+\item{redd_file_path}{Directory containing the survey workbook.}
 
-\item{redd_file_name}{name of Excel file containing redd data in a very particular format, including sheets labeled "Reach Length", "Thalweg CV", "Discharge Gages" and "Redd Surveys".}
+\item{redd_file_name}{Workbook containing sheets \code{"Reach Length"},
+\code{"Thalweg CV"}, \code{"Discharge Gages"}, and \code{"Redd Surveys"}.}
 
-\item{experience_path}{file path to experience file}
+\item{experience_path, experience_file_name}{Directory and workbook containing
+the \code{"Experience"} sheet. By default these are the survey workbook.}
 
-\item{experience_file_name}{name of Excel file containing experience data in a very particular format, with a sheet labeled "Experience"}
-
-\item{query_year}{which year or years should be included in this query?}
+\item{query_year}{Spawn years to include.}
 }
 \value{
-tibble
+A tibble of survey rows and covariates, including \code{mean_discharge},
+or \code{NULL} with a warning or message when the file or requested years are
+unavailable.
 }
 \description{
-Prepares redd survey data including relevant covariates for an observer error model by querying specific files on a WDFW Sharepoint site, and filters for selected year(s).
+Reads the specified survey workbook, adds covariates, and queries mean daily
+discharge. USGS requests are made once per site and date; Washington
+Department of Ecology files are read once per site and calendar year.
 }
-\author{
-Kevin See
+\details{
+W10 discharge is Plain minus Chiwawa; Entiat B discharge is the
+Entiat gage minus Roaring Creek. Missing discharge, including a missing
+component of either adjustment, stays missing without interpolation.
+Request errors generate warnings, and a message lists affected reaches
+and survey dates. Surveys are not removed because discharge is unavailable.
 }

@@ -6,7 +6,7 @@
 \alias{sroem-package}
 \title{sroem: Salmonid Redd Observer Error Models}
 \description{
-What the package does (one paragraph).
+Provides functionality related to the redd observer error models for steelhead and Spring Chinook, described in Murdoch et al. (2018) and Murdoch et al. (2019).
 }
 \seealso{
 Useful links:

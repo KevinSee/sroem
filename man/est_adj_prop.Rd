@@ -10,6 +10,8 @@ est_adj_prop(boot_df = NULL, estimate = c("x_y_ratio", "prop_x"), ...)
 \item{boot_df}{bootstrap results of calling the function \code{boot_adj_prop()}.}
 
 \item{estimate}{if \code{results == estimate}, should an estimate of the ratio of X:Y be returned (\code{x_y_ratio}), or an estimate of the proportion of X (\code{prop_x})? Default is \code{x_y_ratio}.}
+
+\item{...}{Arguments passed to \code{\link[=boot_adj_prop]{boot_adj_prop()}} if \code{boot_df} is \code{NULL}.}
 }
 \value{
 a data.frame

@@ -2,7 +2,7 @@
 % Please edit documentation in R/query_dabom_results.R
 \name{query_dabom_results}
 \alias{query_dabom_results}
-\title{Query DABOM results}
+\title{Read a result from a saved DABOM run}
 \usage{
 query_dabom_results(
   dabom_file_path = file.path("C:", "Users", "seek1477", "Documents", "Git",
@@ -16,22 +16,21 @@ query_dabom_results(
 )
 }
 \arguments{
-\item{dabom_file_path}{file path to DABOM results. Should contain at least two folders names \code{RockIsland} and \code{PriestRapids}.}
+\item{dabom_file_path}{Directory containing the dam-specific folders.}
 
-\item{dabom_dam_nm}{name of dam where dam counts were used to generate escapement estimates. Choices are \code{RockIsland} (default) or \code{PriestRapids}}
+\item{dabom_dam_nm}{\code{"RockIsland"} or \code{"PriestRapids"}.}
 
-\item{dabom_file_name}{partial name of .Rdata object saved after running DABOM model for Upper Columbia.}
+\item{dabom_file_name}{Prefix of the \code{.rda} file, before the year.}
 
-\item{query_year}{which spawn year should results be queried fof?}
+\item{query_year}{Spawn year used in the file name.}
 
-\item{result_type}{what type of results should be queried for? Options include summary of escapement estimates (\code{escape_summ}), tag summary (\code{tag_summ}), posterior draws of escapement (\code{escape_post}), summary of dam counts and adjusted counts (\code{dam_summ}), total escapement by origin used in the results (\code{total_escape}), summary of detection probabilities (\code{detect_summ}) or parent-child table (\code{parent_child}). Default is \code{escape_summ}.}
+\item{result_type}{One of \code{"escape_summ"}, \code{"tag_summ"}, \code{"escape_post"},
+\code{"dam_summ"}, \code{"total_escape"}, \code{"detect_summ"}, or \code{"parent_child"}.}
 }
 \value{
-tibble
+The selected object, with its original class and contents.
 }
 \description{
-Loads .Rdata objects that have been saved for a specific year's DABOM model run, and returns specified type of results.
-}
-\author{
-Kevin See
+Loads a single named result from a DABOM \code{.rda} file into a private
+environment. Other objects in the caller's environment are not modified.
 }

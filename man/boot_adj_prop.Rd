@@ -2,7 +2,7 @@
 % Please edit documentation in R/sex_err_fncs.R
 \name{boot_adj_prop}
 \alias{boot_adj_prop}
-\title{Bootstrap Observation-Error Proportions}
+\title{Bootstrap adjusted proportions with sex-classification error}
 \usage{
 boot_adj_prop(
   b_x,
@@ -12,32 +12,57 @@ boot_adj_prop(
   samp_x,
   samp_y,
   n_boot = 1000,
-  seed = NA
+  seed = NA,
+  prior = c(0.5, 0.5),
+  zero_error = character(),
+  max_batches = 1000
 )
 }
 \arguments{
-\item{b_x}{Number of group X individuals in second sample (e.g., broodstock collection)}
+\item{b_x, b_y}{Numbers of truly X and Y individuals in the known-sex
+subsample.}
 
-\item{b_y}{Number of group Y individuals in second sample (e.g., broodstock collection)}
+\item{false_x, false_y}{Numbers in each true-sex group whose field call was
+incorrect.}
 
-\item{false_x}{how many individuals from group \code{b_x} were mis-identified as Y's in initial sample?}
+\item{samp_x, samp_y}{Numbers called X and Y in the original sample.}
 
-\item{false_y}{how many individuals from group \code{b_y} were mis-identified as X's in initial sample?}
+\item{n_boot}{Number of accepted bootstrap samples.}
 
-\item{samp_x}{number of individuals in initial sample identified as X.}
+\item{seed}{Optional random seed; \code{NA} leaves the random seed unchanged.}
 
-\item{samp_y}{number of individuals in initial sample identified as Y.}
+\item{prior}{Positive beta prior shape parameters for each non-fixed error
+rate. The default \code{c(0.5, 0.5)} is the Jeffreys prior for a binomial
+probability. The posterior is beta(\code{false + prior[1]},
+\code{b - false + prior[2]}).}
 
-\item{n_boot}{how many bootstrap samples should be used? Default is \code{1000}.}
+\item{zero_error}{Character vector containing \code{"x"}, \code{"y"}, both, or
+neither. The listed groups have an error rate fixed at exactly zero with
+no uncertainty; their observed false count must also be zero. Use this
+only when external knowledge justifies the assumption, not merely because
+no errors happened to be observed.}
 
-\item{seed}{if set to a numeric value, it invokes the \code{set.seed()} function to make the data reproducible}
+\item{max_batches}{Maximum number of batches of \code{n_boot} draws. If too few
+mathematically valid samples are found, the function stops with an error.}
 }
 \value{
-a data.frame
+A tibble with \code{n_boot} rows, containing the sampled field counts,
+sampled error rates, adjusted proportions and counts, and uncertainty
+estimates. Adjusted X:Y ratios can be infinite when the adjusted
+proportion of Y is zero.
 }
 \description{
-This function creates bootstrap samples based on data from a scenario when initial sex calls are error-prone to some degree, but different data streams can provide insight into what the sex call error rates are. It is meant to mimic data from an initial sample, like adult steelhead sampling at Priest Rapids Dam, with sex-specific error rates, and subsequent broodstock collections of some of those fish later, when sex calls are known without error.
+Simulates adjusted proportions using sex-specific error rates estimated
+from a subsample whose true sex is known. Each \code{b_x} individual is truly X;
+\code{false_x} of them were called Y. The equivalent applies to Y.
 }
-\author{
-Kevin See
+\details{
+Error rates are conditional on true sex, not on the field call.
+For a group with no known-sex observations, a non-fixed rate is determined
+entirely by the prior and a warning is issued. Error rates whose sum is
+near one make the adjustment poorly identified; supplying a prior does
+not resolve that problem. The adjusted-ratio standard error applies the
+delta method to the unrounded adjusted count; as in the original code,
+it reflects error-rate uncertainty rather than bootstrap sampling
+variability.
 }

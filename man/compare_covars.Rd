@@ -2,33 +2,36 @@
 % Please edit documentation in R/compare_covars.R
 \name{compare_covars}
 \alias{compare_covars}
-\title{Covariate Comparison}
+\title{Compare model and prediction covariates}
 \usage{
 compare_covars(
   redd_df = NULL,
   species = c("Steelhead", "Spring Chinook"),
   num_obs = c("two", "one"),
-  z_score = F,
-  incl_neterr = T
+  z_score = FALSE,
+  incl_neterr = TRUE
 )
 }
 \arguments{
-\item{redd_df}{dataframe containing redd data including columns with covariates in selected observer error model}
+\item{redd_df}{Data frame with the selected model's covariates. If needed,
+\code{exp_sp_total_log} is calculated from \code{exp_sp_total}, and
+\code{naive_density_km} from \code{visible_redds / reach_length_km}.}
 
-\item{species}{which species is being analyzed? This function chooses the appropriate error model for this species. Choices are \code{Steelhead} or \code{Chinook}, with \code{Steelhead} being the default.}
+\item{species}{\code{"Steelhead"} or \code{"Spring Chinook"}.}
 
-\item{num_obs}{if species is \code{Steelhead}, which error model to use, for one or two observers? Default is \code{two}.}
+\item{num_obs}{Steelhead model to use: \code{"two"} or \code{"one"}.}
 
-\item{z_score}{Should the values be z-scored? Default is \code{FALSE}.}
+\item{z_score}{If \code{TRUE}, express covariates using the model's training
+means and standard deviations; net error is never standardized.}
 
-\item{incl_neterr}{Should the net error values and predictions be included? Default is \code{TRUE}.}
+\item{incl_neterr}{If \code{TRUE}, include net error once for each dataset.}
 }
 \value{
-dataframe
+A tibble with \code{covariate}, \code{value}, and \code{source} columns. The
+sources are \code{"Model Data"} and \code{"Predictive Data"}.
 }
 \description{
-Compares covariates of model dataset with predictive dataset
-}
-\author{
-Kevin See
+Returns numeric covariates used in the selected observer-error model in
+long form, optionally including observed and predicted net error. Only
+prediction rows with a non-missing net-error prediction are included.
 }

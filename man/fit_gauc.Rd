@@ -2,7 +2,7 @@
 % Please edit documentation in R/fit_gauc.R
 \name{fit_gauc}
 \alias{fit_gauc}
-\title{Gaussian Area-Under-the-Curve}
+\title{Fit a Gaussian area-under-the-curve model}
 \usage{
 fit_gauc(
   data = NULL,
@@ -14,20 +14,29 @@ fit_gauc(
 )
 }
 \arguments{
-\item{data}{dataframe containing columns named redds and day (Julian days)}
+\item{data}{Data frame containing \code{redds} (counts) and \code{day} (survey time).
+Times must be expressed in the units used for \code{SL}.}
 
-\item{v}{overall mean observer error}
+\item{SL}{Mean operational redd life, in the same time units as \code{day}.}
 
-\item{v_se}{standard deviation of overall observer error}
+\item{SL_se}{Standard error of \code{SL}.}
 
-\item{model_fam}{model family. Must be either \code{quasipoisson} or \code{negative.binomial}.}
+\item{v}{Mean observer net error: observed count divided by true count,
+minus one. Zero represents no net error.}
+
+\item{v_se}{Standard error of \code{v}.}
+
+\item{model_fam}{Either \code{"quasipoisson"} or \code{"negative.binomial"}. The
+latter uses the rounded quasi-Poisson dispersion as the negative-binomial
+size parameter, as intended by the original implementation.}
 }
 \value{
-list
+A list containing adjusted abundance \code{E} and its standard error
+\code{E_se}, unadjusted area \code{Fg} and its standard error \code{F_se}, coefficients
+\code{beta}, curve parameters \code{Ncurve}, and the fitted \code{model}. Curve-derived
+quantities are \code{NA} if the quadratic is not concave or is unidentified.
 }
 \description{
-Fit a Gaussian area-under-the-curve model to redd counts, incorporating estimates of observer error if possible.
-}
-\author{
-Kevin See
+Fits a quadratic log-linear model to redd counts and adjusts the integrated
+curve for redd life and observer net error.
 }

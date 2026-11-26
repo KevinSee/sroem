@@ -2,12 +2,12 @@
 % Please edit documentation in R/estimate_redds.R
 \name{estimate_redds}
 \alias{estimate_redds}
-\title{Estimate Redds}
+\title{Estimate redd abundance by reach}
 \usage{
 estimate_redds(
   redd_df = NULL,
   species = c("Steelhead", "Spring Chinook"),
-  group_vars = c(river, reach, index, survey_type),
+  group_vars = c("river", "reach", "index", "survey_type"),
   new_redd_nm = "new_redds",
   vis_redd_nm = "visible_redds",
   net_err_nm = "net_error",
@@ -15,39 +15,52 @@ estimate_redds(
   min_non0_wks = 3,
   min_redds = 2,
   gauc = NULL,
-  add_zeros = F,
+  add_zeros = FALSE,
   ...
 )
 }
 \arguments{
-\item{redd_df}{dataframe containing redd data, including estimates of observer error}
+\item{redd_df}{Data frame of surveys, counts, and observer-error estimates.}
 
-\item{species}{which species is being analyzed? This function chooses the appropriate error model for this species. Choices are \code{Steelhead} or \code{Chinook}, with \code{Steelhead} being the default.}
+\item{species}{\code{"Steelhead"} or \code{"Spring Chinook"}. By default GAUC is
+requested for steelhead and not requested for spring Chinook.}
 
-\item{group_vars}{vector of column names from {redd_df} to group results by}
+\item{group_vars}{Character vector of columns identifying each estimate.}
 
-\item{new_redd_nm}{quoted name of column in {redd_df} listing number of new redds found during that survey}
+\item{new_redd_nm, vis_redd_nm}{Names of the new and visible redd columns.}
 
-\item{vis_redd_nm}{quoted name of column in {redd_df} listing number of visible redds present during that survey}
+\item{net_err_nm, net_se_nm}{Names of the net-error estimate and standard
+error columns. Either column may be absent. Net error is observed count
+divided by true count minus one.}
 
-\item{net_err_nm}{quoted name of column in {redd_df} listing estimate of net error for that survey}
+\item{min_non0_wks}{Minimum number of surveys with a positive new count.}
 
-\item{net_se_nm}{quoted name of column in {redd_df} listing standard error of net error estimate for that survey}
+\item{min_redds}{Minimum total observed count required to use GAUC.}
 
-\item{min_non0_wks}{minimum number of weeks with at least one new redd observed}
+\item{gauc}{Whether to attempt GAUC. \code{NULL} selects the species default.}
 
-\item{min_redds}{minimum number of total redds observed}
+\item{add_zeros}{Whether to add zero-count observations at nonzero ends.}
 
-\item{gauc}{\code{TRUE/FALSE} should a Gaussian area-under-the-curve model be applied? If \code{FALSE}, the total number of new redds is divided by the mean estimate of observer error. By default \code{gauc} is \code{TRUE} for steelhead, and \code{FALSE} for Spring Chinook.}
-
-\item{add_zeros}{should leading and trailing zero counts be added if the first and last counts aren't already zero? Default is {FALSE}.}
+\item{...}{Additional arguments passed to \code{fit_gauc()}.}
 }
 \value{
-dataframe
+A tibble with one row per group, including observed totals,
+\code{redd_est}, \code{redd_se}, nested survey data, and logical \code{gauc}, which is
+\code{TRUE} only when the GAUC estimate was used. When GAUC was attempted,
+\code{GAUC} is retained as an alias for compatibility, along with fit
+diagnostics. Failed fits fall back to adjusted total counts and are
+reported in \code{any_error} and a warning.
 }
 \description{
-Estimates true number of redds across a series of reaches, using a Gaussian area-under-the-curve model where possible and incorporating estimates of observer error if possible.
+Fits a Gaussian area-under-the-curve (GAUC) model when requested and
+eligible; otherwise adjusts the total observed count by mean net error.
+Surveys within each group must be in chronological order. GAUC uses their
+row positions as equally spaced time units.
 }
-\author{
-Kevin See
+\details{
+Mean net error and its standard error are calculated from surveys
+with visible redds. If no net-error estimate is available for a group,
+both are set to zero and a message identifies the affected reaches or
+grouping values. If the estimate is available but its standard error is
+missing, the standard error remains missing.
 }

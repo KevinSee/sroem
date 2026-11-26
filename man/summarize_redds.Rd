@@ -2,12 +2,12 @@
 % Please edit documentation in R/summarize_redds.R
 \name{summarize_redds}
 \alias{summarize_redds}
-\title{Summarize Redds}
+\title{Summarize estimated redd abundance}
 \usage{
 summarize_redds(
   redd_df = NULL,
   species = c("Steelhead", "Spring Chinook"),
-  group_vars = c(river, reach, index, survey_type),
+  group_vars = c("river", "reach", "index", "survey_type"),
   summ_vars = c("river", "location"),
   new_redd_nm = "new_redds",
   vis_redd_nm = "visible_redds",
@@ -16,66 +16,76 @@ summarize_redds(
   min_non0_wks = 3,
   min_redds = 2,
   gauc = NULL,
-  add_zeros = F,
-  use_cor = F,
+  add_zeros = FALSE,
+  use_cor = FALSE,
   date_nm = "survey_date",
   cor_redd_nm = "new_redds",
   reach_nm = "reach",
   use = "pairwise.complete.obs",
   method = c("pearson", "kendall", "spearman"),
+  correlation_data = c("counts", "errors"),
+  error_nm = NULL,
+  year_mode = c("pooled", "per_year", "legacy"),
   ...
 )
 }
 \arguments{
-\item{redd_df}{dataframe containing redd data, including estimates of observer error}
+\item{redd_df}{Data frame of surveys, counts, and observer-error estimates.}
 
-\item{species}{which species is being analyzed? This function chooses the appropriate error model for this species. Choices are \code{Steelhead} or \code{Chinook}, with \code{Steelhead} being the default.}
+\item{species}{\code{"Steelhead"} or \code{"Spring Chinook"}. By default GAUC is
+requested for steelhead and not requested for spring Chinook.}
 
-\item{group_vars}{vector of column names from {redd_df} to group results by}
+\item{group_vars}{Character vector of columns identifying each estimate.}
 
-\item{summ_vars}{vector of column names from {redd_df} to group summaries of redd results by}
+\item{summ_vars}{Character vector of columns identifying each summary.}
 
-\item{new_redd_nm}{quoted name of column in {redd_df} listing number of new redds found during that survey}
+\item{new_redd_nm, vis_redd_nm}{Names of the new and visible redd columns.}
 
-\item{vis_redd_nm}{quoted name of column in {redd_df} listing number of visible redds present during that survey}
+\item{net_err_nm, net_se_nm}{Names of the net-error estimate and standard
+error columns. Either column may be absent. Net error is observed count
+divided by true count minus one.}
 
-\item{net_err_nm}{quoted name of column in {redd_df} listing estimate of net error for that survey}
+\item{min_non0_wks}{Minimum number of surveys with a positive new count.}
 
-\item{net_se_nm}{quoted name of column in {redd_df} listing standard error of net error estimate for that survey}
+\item{min_redds}{Minimum total observed count required to use GAUC.}
 
-\item{min_non0_wks}{minimum number of weeks with at least one new redd observed}
+\item{gauc}{Whether to attempt GAUC. \code{NULL} selects the species default.}
 
-\item{min_redds}{minimum number of total redds observed}
+\item{add_zeros}{Whether to add zero-count observations at nonzero ends.}
 
-\item{gauc}{\code{TRUE/FALSE} should a Gaussian area-under-the-curve model be applied? If \code{FALSE}, the total number of new redds is divided by the mean estimate of observer error. By default \code{gauc} is \code{TRUE} for steelhead, and \code{FALSE} for Spring Chinook.}
+\item{use_cor}{Whether to account for correlations between reaches.}
 
-\item{add_zeros}{should leading and trailing zero counts be added if the first and last counts aren't already zero? Default is {FALSE}.}
+\item{date_nm, cor_redd_nm, reach_nm}{Names of the survey date, count, and
+reach columns used to estimate correlations.}
 
-\item{use_cor}{should correlations between reaches be used in calculating standard errors? Default is {FALSE}}
+\item{use}{Missing-observation method passed to \code{\link[stats:cor]{stats::cor()}}.}
 
-\item{date_nm}{quoted name of column in {redd_df} listing date of each survey}
+\item{method}{Correlation method: \code{"pearson"}, \code{"kendall"}, or \code{"spearman"}.}
 
-\item{cor_redd_nm}{quoted name of column in {redd_df} listing number of redds found during that survey, to be used in the correlation}
+\item{correlation_data}{Whether to correlate observed \code{"counts"} or supplied
+signed \code{"errors"}.}
 
-\item{reach_nm}{quoted name of column in {redd_df} listing name of reach}
+\item{error_nm}{Name of the signed-error column when using \code{"errors"}.}
 
-\item{use}{an optional character string giving a
-    method for computing covariances in the presence
-    of missing values.  This must be (an abbreviation of) one of the strings
-    \code{"everything"}, \code{"all.obs"}, \code{"complete.obs"},
-    \code{"na.or.complete"}, or \code{"pairwise.complete.obs"}.}
+\item{year_mode}{\code{"pooled"}, \code{"per_year"}, or \code{"legacy"}; see
+\code{correlate_rchs()}. Per-year summaries must each contain one calendar year.}
 
-\item{method}{a character string indicating which correlation
-    coefficient (or covariance) is to be computed.  One of
-    \code{"pearson"} (default), \code{"kendall"}, or \code{"spearman"}:
-    can be abbreviated.}
+\item{...}{Reserved for compatibility; currently unused.}
 }
 \value{
-dataframe
+A list with \code{rch_est} and \code{summ_est}; with \code{use_cor = TRUE}, also
+\code{cor_df}. Summaries include \code{strm_se_naive}, the independent-reach
+standard error, and \code{strm_se}, the correlation-adjusted standard error.
 }
 \description{
-Estimates true number of redds across a series of reaches, using a Gaussian area-under-the-curve model where possible and incorporating estimates of observer error if possible. These estimates are then summarized across a user-defined spatial scale.
+Estimates redds for each group and summarizes the estimates over a spatial
+scale. When requested, correlations between reaches contribute to the
+standard error of each summary.
 }
-\author{
-Kevin See
+\details{
+Correlations use the weekly aggregation in \code{correlate_rchs()}.
+When a correlation cannot be estimated, it is set to zero and the affected
+reach pairs are reported in a message. The diagonal remains one. If a
+summary contains multiple estimates for the same reach, their mutual
+correlation cannot be inferred from reach-level data and is set to zero.
 }

@@ -27,6 +27,17 @@ You can install the development version with:
 devtools::install_github("KevinSee/sroem@develop")
 ```
 
+For the experimental branch, first commit and push its changes, then install
+it in another workflow with:
+
+``` r
+devtools::install_github("KevinSee/sroem@ai_test")
+```
+
+To install the current local checkout without publishing it, run
+`devtools::install()` from the repository root. Run the package tests with
+`devtools::test()`. The tests live in `tests/testthat/`.
+
 # References
 
 <div id="refs" class="references csl-bib-body hanging-indent">

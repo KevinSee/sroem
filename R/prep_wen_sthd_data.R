@@ -1,6 +1,7 @@
 #' @title Prepare All Data from Wenatchee for a Report
 #'
 #' @description This function pulls together redd survey data and estimates net error for each survey, PIT tags detected in the Wenatchee, error rates of sex calls at Priest, a corrected fish/redd estimate based on sex ratios adjusted for the error rate of sex calls at Priest, estimates of escapement to various tributaries in the Wenatchee as well as run escapement to the Wenatchee as a whole and the number of known removals (e.g. broodstock collection, harvest). These are all either saved as an .RData object, or loaded into the global environment.
+#'   This legacy function is superseded by [prep_uc_sthd_data()].
 #'
 #' @author Kevin See
 #'
@@ -13,11 +14,12 @@
 #' @param n_observers how many observers / boats were used on each survey?
 #' @param phos_data should the data used to estimate pHOS come from PIT `tags` or `escapement` estimates? Default is `escapement`.
 #' @param save_rda should the data that's returned by saved as an .RData object (`TRUE`)? Default value of `FALSE` loads all the returned objects into the Global Environment.
+#' @param save_by_year If saving, save a separate file for each year.
 #' @param save_file_path if `save_rda` is `TRUE`, where should the .RData object be saved?
 #' @param save_file_name if `save_rda` is `TRUE`, what should the file name be? Should end in ".rda".
 #'
 #'
-#' @import rlang purrr dplyr readxl readr janitor tidyr lubridate coda
+#' @import purrr dplyr readxl readr janitor tidyr lubridate coda
 #' @importFrom DescTools BinomCI
 #' @importFrom msm deltamethod
 #' @return either saves an .Rdata object with output for a given year, or loads those results into global environment.
